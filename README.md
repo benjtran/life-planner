@@ -4,7 +4,7 @@ Daymark organizes tasks and training. Calendar gives a read-only overview of the
 
 ## Run on your computer
 
-With Node.js 22 or newer, run `npm start` from this repository and open <http://127.0.0.1:4173/>. The app has no package dependencies.
+With Node.js 22 or newer, run `npm start` from this repository and open <http://127.0.0.1:4173/>. A new planner starts empty. The app has no package dependencies.
 
 ## Open on an iPhone
 

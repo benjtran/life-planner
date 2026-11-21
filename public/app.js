@@ -23,29 +23,6 @@
   const taskTone = (due) => !due ? 'none' : due === today ? 'today' : due === addDays(today, 1) ? 'tomorrow' : due < today ? 'overdue' : 'later';
   const mondayOf = (value) => addDays(value, -((parseDate(value).getDay() + 6) % 7));
 
-  function samplePlanner() {
-    const data = withDefaults({days: {}, tasks: []});
-    const strength = (name, sets = []) => ({id: id(), name, kind: 'strength', sets: sets.map(([reps, weight]) => ({reps, weight}))});
-    const plans = [
-      ['Chest & back', ['Dumbbell bench press', 'Lat pulldown']],
-      ['Arms', ['Dumbbell curl', 'Cable triceps extension']],
-      ['Legs', ['Goblet squat', 'Romanian deadlift']],
-      ['Upper body', ['Dumbbell bench press', 'Seated row']],
-      ['Lower body', ['Goblet squat', 'Leg press']]
-    ];
-    data.templates = plans.map(([title, names], offset) => ({id: id(), title, weekdays: [parseDate(addDays(today, offset)).getDay()], startDate: today, exercises: names.map(name => ({id: id(), name}))}));
-    [[-21, 8, 35], [-14, 10, 35], [-7, 8, 40], [-2, 9, 40]].forEach(([offset, reps, weight]) => {
-      const day = data.days[addDays(today, offset)] ||= blankDay();
-      day.workout.title ||= 'Upper body';
-      day.workout.exercises.push(strength('Dumbbell bench press', [[reps, weight], [reps - 1, weight]]));
-    });
-    data.tasks = [
-      ['Wash gym clothes', -1, false], ['Pack gym bag', 0, false], ['Refill water bottle', 0, false],
-      ['Pick up groceries', 1, false], ['Plan next week’s workouts', 4, false], ['Book a training session', 0, true]
-    ].map(([title, offset, done]) => ({id: id(), title, due: addDays(today, offset), done}));
-    return data;
-  }
-
   function storageRead(name) {
     try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
   }
@@ -55,7 +32,7 @@
   }
 
   const saved = hosted ? null : storageRead(key);
-  let state = hosted ? withDefaults({days: {}, tasks: []}) : saved?.state ? withDefaults(saved.state) : samplePlanner();
+  let state = withDefaults(saved?.state ?? {days: {}, tasks: []});
   let past = saved?.past || [];
   let future = saved?.future || [];
   let section = 'calendar';
