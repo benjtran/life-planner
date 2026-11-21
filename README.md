@@ -1,6 +1,6 @@
 # Daymark
 
-Daymark organizes tasks and exercise. Calendar shows what is scheduled each day, and Tasks lists all deadlines in date order. Under Training, create workout days, assign weekdays, log dated sets, and view exercise progress. The Running tab counts distinct high- and low-intensity days in each Monday–Sunday week. Saved changes support undo and redo.
+Daymark organizes tasks and training. Calendar gives a read-only overview of the week or month. Select a date to open its Tasks checklist, which includes scheduled workouts and runs. All tasks shows every deadline and the selected week's training. Under Training, assign weekdays to workout days or run types, log sets and runs, and view progress. Saved changes support undo and redo.
 
 ## Run on your computer
 

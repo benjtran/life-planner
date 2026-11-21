@@ -5,7 +5,7 @@ import {runInNewContext} from 'node:vm';
 
 const window = {};
 runInNewContext(readFileSync(new URL('../public/schedule.js', import.meta.url), 'utf8'), {window});
-const {withDefaults, workoutFor, pinWorkout} = window.DaymarkSchedule;
+const {withDefaults, workoutFor, pinWorkout, blankSet, activitiesFor, applyWorkoutInputs} = window.DaymarkSchedule;
 
 function planner() {
   return withDefaults({days: {}, tasks: [], templates: [{
@@ -38,4 +38,33 @@ test('upgrading old planner data preserves tasks and completed dated workouts', 
   assert.equal(workoutFor(state, '2026-11-23').title, 'One-off');
   assert.equal(state.runGoals.high, 2);
   assert.equal(state.runGoals.low, 4);
+});
+
+test('appending a set preserves typed reps and weight in the earlier set and its undo snapshot', () => {
+  const state = planner();
+  const date = '2026-11-23';
+  const workout = applyWorkoutInputs(state, date, [{form: 'save-set', id: 'lat', index: 0, values: {reps: '10', weight: '60'}}]);
+  const beforeAdd = structuredClone(state);
+  workout.exercises[0].sets.push(blankSet());
+  assert.equal(state.days[date].workout.exercises[0].sets.length, 2);
+  for (const snapshot of [state, beforeAdd]) {
+    const first = workoutFor(snapshot, date).exercises[0].sets[0];
+    assert.equal(first.reps, 10);
+    assert.equal(first.weight, 60);
+  }
+  assert.equal(workoutFor(beforeAdd, date).exercises[0].sets.length, 1);
+});
+
+test('activities show a single workout and put scheduled runs on their weekday only', () => {
+  const state = planner();
+  state.runTypes.push({id: 'easy', title: 'Easy run', distance: 5, pace: '6:30', weekdays: [1], startDate: '2026-11-23'});
+  const items = activitiesFor(state, '2026-11-23');
+  assert.equal(items.length, 2);
+  assert.equal(items[0].title, 'Back Day');
+  assert.equal(items[1].detail, '5 km · 6:30 min/km');
+  assert.equal(activitiesFor(state, '2026-11-24').length, 0);
+  state.runs.push({id: 'record', runTypeId: 'easy', date: '2026-11-23', distance: 5, intensity: 'low'});
+  assert.equal(activitiesFor(state, '2026-11-23').length, 2);
+  assert.equal(activitiesFor(state, '2026-11-23')[1].done, true);
+  assert.equal(activitiesFor(state, '2026-11-30')[1].done, false);
 });

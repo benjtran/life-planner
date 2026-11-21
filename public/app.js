@@ -18,7 +18,7 @@
   const today = dateKey(new Date());
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[char]));
   const id = () => globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  const {withDefaults, workoutFor, pinWorkout, emptyWorkout, blankSet} = window.DaymarkSchedule;
+  const {withDefaults, workoutFor, pinWorkout, emptyWorkout, blankSet, activitiesFor, runItemId, workoutItemId, applyWorkoutInputs} = window.DaymarkSchedule;
   const blankDay = () => ({workout: emptyWorkout(), cardio: ''});
   const taskTone = (due) => !due ? 'none' : due === today ? 'today' : due === addDays(today, 1) ? 'tomorrow' : due < today ? 'overdue' : 'later';
   const mondayOf = (value) => addDays(value, -((parseDate(value).getDay() + 6) % 7));
@@ -63,8 +63,11 @@
   let view = 'month';
   let progressExercise = '';
   let taskFilter = 'all';
+  let taskScope = 'day';
   let trainingView = 'templates';
   let templateId = '';
+  let runTypeId = '';
+  let runLogTypeId = '';
   let runWeekStart = mondayOf(today);
   let toastTimer;
   let sync = {available: false, code: '', url: '', host: false, busy: false};
@@ -82,6 +85,8 @@
   };
   const icon = (name) => `<svg class="icon" aria-hidden="true" viewBox="0 0 24 24">${icons[name]}</svg>`;
   const brand = (extra = '') => `<div class="brand ${extra}"><span class="brand-mark">${icon('mark')}</span>Daymark</div>`;
+  const manualTask = task => ({...task, kind: 'task'});
+  const itemsFor = (value) => [...state.tasks.filter(task => task.due === value).map(manualTask), ...activitiesFor(state, value)];
 
   function render() {
     const focused = document.activeElement;
@@ -95,13 +100,15 @@
     $('sidebar').innerHTML = `${brand()}<nav aria-label="Main navigation">${nav}</nav><div class="sidebar-bottom"><button class="nav-button" type="button" data-action="devices">${icon('devices')} Devices</button><small>${storageLabel}</small></div>`;
     $('mobile-nav').innerHTML = nav;
     $('topbar').innerHTML = `${brand('top-brand')}<div class="top-actions"><button type="button" class="btn mobile-devices" data-action="devices" aria-label="Connect devices">${icon('devices')}</button><button type="button" class="btn" data-action="undo" aria-label="Undo" title="Undo (Ctrl or Cmd + Z)" ${past.length && !sync.busy ? '' : 'disabled'}>${icon('undo')}<span class="tool-text">Undo</span></button><button type="button" class="btn icon-button" data-action="redo" aria-label="Redo" title="Redo (Ctrl or Cmd + Shift + Z)" ${future.length && !sync.busy ? '' : 'disabled'}>${icon('redo')}</button></div>`;
-    $('heading').innerHTML = section === 'training' ? '' : `<div class="page-heading"><h1>${sections[section]}</h1><button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button></div>`;
-    const ctx = {state, date, today, view, esc, pretty, addDays, taskTone, taskFilter, trainingView, templateId, runWeekStart, progressExercise, workoutFor: value => workoutFor(state, value)};
+    $('heading').innerHTML = section === 'training' ? '' : `<div class="page-heading"><h1>${sections[section]}</h1>${section === 'tasks' ? `<button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button>` : ''}</div>`;
+    const weekStart = mondayOf(date);
+    const allItems = section === 'tasks' && taskScope === 'all' ? [...state.tasks.map(manualTask), ...Array.from({length: 7}, (_, offset) => activitiesFor(state, addDays(weekStart, offset))).flat()] : [];
+    const ctx = {state, date, today, view, esc, pretty, addDays, taskTone, taskFilter, taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, runLogTypeId, runWeekStart, progressExercise, workoutFor: value => workoutFor(state, value)};
     $('view').innerHTML = window.DaymarkViews[section](ctx);
     const week = $('view').querySelector('.planner-schedule.is-week');
     if (week) {
       const selected = week.querySelector('.schedule-day.is-selected');
-      week.scrollLeft = date === previousWeekDate ? previousWeekScroll : selected.offsetLeft;
+      week.scrollLeft = date === previousWeekDate ? previousWeekScroll : selected?.offsetLeft || 0;
       if (focused === previousWeek) week.focus({preventScroll: true});
     }
     if (focusRegion && focusData) {
@@ -128,7 +135,7 @@
     next = withDefaults(next);
     if (hosted && revision < 0) { notify('Daymark is still connecting. Try again in a moment.'); return false; }
     if (sync.busy) { notify('A change is still saving. Try again in a moment.'); return false; }
-    if (JSON.stringify(next) === JSON.stringify(state)) return true;
+    if (JSON.stringify(next) === JSON.stringify(state)) { notify(message); return true; }
     if (hosted || sync.code) {
       sync.busy = true;
       try {
@@ -212,7 +219,7 @@
     dialog.innerHTML = `<div class="dialog-title"><h2 id="task-editor-title">${task ? 'Edit task' : 'Add task'}</h2><button class="btn icon-button" type="button" data-action="close-task-editor" aria-label="Close task editor">×</button></div>
       <form class="device-body" data-form="save-task" data-id="${esc(task?.id)}">
         <label>Task<input name="title" value="${esc(task?.title)}" maxlength="200" required autofocus></label>
-        <label>Due date<input name="due" type="date" value="${esc(task?.due ?? (section === 'calendar' ? date : today))}"></label>
+        <label>Due date<input name="due" type="date" value="${esc(task?.due ?? (taskScope === 'day' ? date : today))}"></label>
         <div class="actions"><button class="btn primary" type="submit">${task ? 'Save task' : 'Add task'}</button>${task ? `<button class="btn danger-text" type="button" data-action="delete-task" data-id="${esc(task.id)}">Delete task</button>` : ''}</div>
       </form>`;
     dialog.showModal();
@@ -232,18 +239,36 @@
   }
 
   function stepDate(direction) {
-    const mode = section === 'calendar' ? view : 'day';
-    if (mode === 'day' || mode === 'week') return addDays(date, direction * (mode === 'week' ? 7 : 1));
+    if (view === 'week') return addDays(date, direction * 7);
     const current = parseDate(date);
-    const next = new Date(current.getFullYear(), current.getMonth() + direction * (mode === 'year' ? 12 : 1), 1, 12);
+    const next = new Date(current.getFullYear(), current.getMonth() + direction, 1, 12);
     const last = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
     next.setDate(Math.min(last, current.getDate()));
     return dateKey(next);
   }
 
-  const dayFor = (data) => data.days[date] ||= blankDay();
-  const exerciseFor = (data, exerciseId) => pinWorkout(data, date).exercises.find((exercise) => exercise.id === exerciseId);
   const numberOrBlank = (value) => value === '' ? null : Number(value);
+  const workoutForms = () => [...$('view').querySelectorAll('[data-form="workout-title"], [data-form="save-set"], [data-form="save-cardio"]')];
+  const formEdited = form => [...form.querySelectorAll('input')].some(input => input.value !== input.defaultValue || input.validity.badInput);
+  const assignedWeekdays = data => [...new Set(data.getAll('weekday').map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6))];
+
+  function changeWorkout(message, update, preserveEntriesOnUndo = false) {
+    const forms = workoutForms();
+    if (forms.some(form => !form.reportValidity())) return false;
+    const inputs = forms.filter(formEdited).map(form => ({...form.dataset, values: Object.fromEntries([...new FormData(form)].map(([name, value]) => [name, value.trim()]))}));
+    const next = copy(state);
+    const workout = inputs.length ? applyWorkoutInputs(next, date, inputs) : pinWorkout(next, date);
+    const before = preserveEntriesOnUndo && inputs.length ? copy(next) : state;
+    update(workout, next);
+    return useState(next, [...past, {state: before, message}], [], message);
+  }
+
+  function createWorkoutForm() {
+    trainingView = 'templates';
+    templateId = '';
+    render();
+    $('view').querySelector('[data-form="save-template"] input[name="title"]')?.focus();
+  }
 
   document.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-action]');
@@ -254,9 +279,20 @@
       case 'navigate': return navigate(button.dataset.section);
       case 'new-task': return taskEditor();
       case 'open-workout': date = actionDate; trainingView = 'workout'; return navigate('training');
-      case 'open-running': runWeekStart = mondayOf(actionDate); date = actionDate; trainingView = 'running'; return navigate('training');
+      case 'open-running':
+        runWeekStart = mondayOf(actionDate);
+        date = actionDate;
+        runLogTypeId = actionDate <= today ? itemId || '' : '';
+        if (actionDate > today) runTypeId = itemId || '';
+        trainingView = 'running';
+        navigate('training');
+        return $('view').querySelector(actionDate <= today ? '[data-form="log-run"] select' : '[data-form="save-run-type"] input[name="title"]')?.focus();
       case 'training-view': trainingView = button.dataset.view; return render();
       case 'task-filter': taskFilter = button.dataset.filter; return render();
+      case 'task-scope': taskScope = button.dataset.scope; return render();
+      case 'task-prev': date = addDays(date, -1); return render();
+      case 'task-next': date = addDays(date, 1); return render();
+      case 'task-today': date = today; return render();
       case 'select-template': templateId = itemId; return render();
       case 'delete-template': return change('Workout day deleted.', (next) => { next.templates = next.templates.filter(template => template.id !== itemId); });
       case 'delete-template-exercise': return change('Exercise removed from workout day.', (next) => {
@@ -267,10 +303,13 @@
       case 'run-week-next': runWeekStart = addDays(runWeekStart, 7); return render();
       case 'run-week-today': runWeekStart = mondayOf(today); return render();
       case 'delete-run': return change('Run deleted.', (next) => { next.runs = next.runs.filter(run => run.id !== itemId); });
+      case 'select-run-type': runTypeId = itemId; return render();
+      case 'delete-run-type': return change('Run type deleted.', (next) => { next.runTypes = next.runTypes.filter(run => run.id !== itemId); });
       case 'select-date':
         date = actionDate;
-        if (view === 'year') view = 'day';
-        return render();
+        taskScope = 'day';
+        taskFilter = 'all';
+        return navigate('tasks');
       case 'calendar-view': view = button.dataset.view; return render();
       case 'calendar-prev': date = stepDate(-1); return render();
       case 'calendar-next': date = stepDate(1); return render();
@@ -283,24 +322,19 @@
         return;
       }
       case 'delete-task': return change('Task deleted.', (next) => { next.tasks = next.tasks.filter((item) => item.id !== itemId); }).then((saved) => { if (saved) $('task-editor').close(); });
-      case 'toggle-exercise': {
-        const item = workoutFor(state, actionDate).exercises.find(entry => entry.id === itemId);
-        if (item) return change(item.done ? 'Exercise restored.' : 'Exercise completed.', (next) => {
-          pinWorkout(next, actionDate).exercises.find(entry => entry.id === itemId).done = !item.done;
-        });
+      case 'toggle-planned': {
+        const item = activitiesFor(state, actionDate).find(entry => entry.id === itemId && entry.kind !== 'run-log');
+        if (item) return change(item.done ? 'Marked as to do.' : 'Marked complete.', (next) => { next.plannedCompletions[itemId] = !item.done; });
         return;
       }
-      case 'toggle-cardio': {
-        const day = state.days[actionDate];
-        if (day?.cardio) return change(day.cardioDone ? 'Cardio restored.' : 'Cardio completed.', (next) => { next.days[actionDate].cardioDone = !day.cardioDone; });
-        return;
-      }
-      case 'add-set': return change('Set added.', (next) => exerciseFor(next, itemId)?.sets.push(blankSet()));
-      case 'delete-set': return change('Set deleted.', (next) => exerciseFor(next, itemId)?.sets.splice(Number(index), 1));
-      case 'delete-exercise': return change('Exercise deleted.', (next) => {
-        const workout = pinWorkout(next, date);
+      case 'add-set': return changeWorkout('Set added.', (workout) => workout.exercises.find(entry => entry.id === itemId)?.sets.push(blankSet()), true);
+      case 'delete-set': return changeWorkout('Set deleted.', (workout) => workout.exercises.find(entry => entry.id === itemId)?.sets.splice(Number(index), 1), true);
+      case 'delete-exercise': return changeWorkout('Exercise deleted.', (workout) => {
         workout.exercises = workout.exercises.filter((item) => item.id !== itemId);
-      });
+      }, true);
+      case 'finish-workout': return Promise.resolve(changeWorkout('Workout saved.', (workout, next) => {
+        if (workout.title || workout.exercises.length) next.plannedCompletions[workoutItemId(date)] = true;
+      })).then(saved => { if (saved) createWorkoutForm(); });
       case 'progress-exercise': progressExercise = exercise; trainingView = 'progress'; return navigate('training');
       case 'undo': return undo();
       case 'redo': return redo();
@@ -315,6 +349,8 @@
           next.tasks = [];
           next.templates = [];
           next.runs = [];
+          next.runTypes = [];
+          next.plannedCompletions = {};
         });
     }
   });
@@ -322,12 +358,17 @@
   document.addEventListener('change', (event) => {
     const field = event.target;
     if (field.dataset.change === 'date' && validDate(field.value)) { date = field.value; render(); }
+    if (field.dataset.change === 'run-log-type') {
+      runLogTypeId = field.value;
+      const intensity = state.runTypes.find(type => type.id === field.value)?.intensity;
+      if (intensity) field.form.elements.namedItem('intensity').value = intensity;
+    }
     if (field.dataset.change === 'progress-exercise') { progressExercise = field.value; render(); $('view').querySelector('[data-change="progress-exercise"]')?.focus(); }
   });
 
   document.addEventListener('submit', async (event) => {
     const form = event.target;
-    const {form: action, id: itemId, index} = form.dataset;
+    const {form: action, id: itemId} = form.dataset;
     if (!action) return;
     event.preventDefault();
     const data = new FormData(form);
@@ -345,7 +386,8 @@
         });
         if (saved) {
           $('task-editor').close();
-          if (section === 'calendar' && due) date = due;
+          if (taskScope === 'day' && due) date = due;
+          if (!due) taskScope = 'all';
           if (section === 'tasks' && !itemId && taskFilter === 'done') taskFilter = 'open';
           render();
           $('heading').querySelector('[data-action="new-task"]')?.focus({preventScroll: true});
@@ -355,14 +397,15 @@
       case 'save-template': {
         const title = get('title');
         if (!title) return;
-        const weekdays = [...new Set(data.getAll('weekday').map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6))];
+        const weekdays = assignedWeekdays(data);
         const entryId = itemId || id();
-        const committed = await change('Workout day saved.', (next) => {
+        const committed = await change(itemId ? 'Workout saved.' : 'Workout created. Add exercises below.', (next) => {
           const entry = next.templates.find(template => template.id === entryId);
           if (entry) Object.assign(entry, {title, weekdays});
           else next.templates.push({id: entryId, title, weekdays, exercises: [], startDate: today});
         });
-        if (committed) { templateId = entryId; render(); if (!itemId) $('view').querySelector('[data-form="add-template-exercise"] input')?.focus(); }
+        if (committed && itemId) createWorkoutForm();
+        else if (committed) { templateId = entryId; render(); $('view').querySelector('[data-form="add-template-exercise"] input')?.focus(); }
         return;
       }
       case 'add-template-exercise': {
@@ -372,39 +415,43 @@
       }
       case 'log-run': {
         const runDate = get('date');
+        const type = state.runTypes.find(entry => entry.id === get('runTypeId'));
         const intensity = get('intensity');
         const distance = Number(get('distance'));
         const minutes = numberOrBlank(get('minutes'));
         if (!validDate(runDate) || runDate > today || !['high', 'low'].includes(intensity) || !Number.isFinite(distance) || distance <= 0 || (minutes !== null && (!Number.isFinite(minutes) || minutes <= 0))) return;
-        const committed = await change('Run logged.', (next) => next.runs.push({id: id(), date: runDate, intensity, distance, minutes}));
+        const committed = await change('Run logged.', (next) => {
+          next.runs.push({id: id(), date: runDate, intensity, distance, minutes, ...(type ? {runTypeId: type.id, typeName: type.title} : {})});
+          if (type) delete next.plannedCompletions[runItemId(runDate, type.id)];
+        });
         if (committed) { runWeekStart = mondayOf(runDate); render(); }
         return;
       }
-      case 'save-run-goals': {
-        const high = Number(get('high'));
-        const low = Number(get('low'));
-        if (![high, low].every(goal => Number.isInteger(goal) && goal >= 0 && goal <= 7)) return;
-        return change('Running goals saved.', (next) => { next.runGoals = {high, low, highDistance: get('highDistance'), lowDistance: get('lowDistance')}; });
+      case 'save-run-type': {
+        const title = get('title');
+        const distance = Number(get('distance'));
+        const pace = get('pace');
+        const intensity = get('intensity');
+        const weekdays = assignedWeekdays(data);
+        if (!title || !Number.isFinite(distance) || distance <= 0 || !['high', 'low'].includes(intensity)) return;
+        if (!weekdays.length) { notify('Select at least one day for this run.'); return; }
+        const committed = await change(itemId ? 'Run type saved.' : 'Run scheduled.', (next) => {
+          const type = next.runTypes.find(entry => entry.id === itemId);
+          const details = {title, distance, pace, intensity, weekdays};
+          if (type) Object.assign(type, details);
+          else next.runTypes.push({id: id(), startDate: today, ...details});
+        });
+        if (committed) { runTypeId = ''; render(); }
+        return;
       }
-      case 'workout-title': return change('Workout plan saved.', (next) => {
-        pinWorkout(next, date).title = get('title');
-        const day = dayFor(next);
-        if (day.cardio !== get('cardio')) day.cardioDone = false;
-        day.cardio = get('cardio');
-      });
+      case 'workout-title': return changeWorkout('Workout details saved.', () => {});
       case 'add-exercise': {
         if (!get('name')) return;
         const kind = get('kind') === 'cardio' ? 'cardio' : 'strength';
-        return change('Exercise added.', (next) => pinWorkout(next, date).exercises.push({id: id(), name: get('name'), kind, sets: kind === 'strength' ? [blankSet()] : [], minutes: null}));
+        return changeWorkout('Exercise added.', (workout) => workout.exercises.push({id: id(), name: get('name'), kind, sets: kind === 'strength' ? [blankSet()] : [], minutes: null}), true);
       }
-      case 'save-set': return change('Set saved.', (next) => {
-        const entry = exerciseFor(next, itemId)?.sets[Number(index)];
-        if (entry) Object.assign(entry, {reps: numberOrBlank(get('reps')), weight: numberOrBlank(get('weight'))});
-      });
-      case 'save-cardio': return change('Cardio saved.', (next) => {
-        const entry = exerciseFor(next, itemId);
-        if (entry) entry.minutes = numberOrBlank(get('minutes'));
-      });
+      case 'save-set': return changeWorkout('Sets saved.', () => {});
+      case 'save-cardio': return changeWorkout('Cardio saved.', () => {});
       case 'pair':
         try { await pair(get('code')); $('devices').close(); notify('Device connected.'); }
         catch { devices('Couldn’t connect. Check the code and try again.'); }
@@ -437,13 +484,14 @@
   }
 
   async function refreshFromHost() {
-    if ((!hosted && !sync.code) || sync.busy || document.hidden || (revision >= 0 && document.activeElement?.closest('form'))) return;
+    const editing = () => document.activeElement?.closest('form') || workoutForms().some(formEdited);
+    if ((!hosted && !sync.code) || sync.busy || document.hidden || (revision >= 0 && editing())) return;
     try {
       const seenRevision = revision;
       const response = await fetch('api/planner', {headers: plannerHeaders(), cache: 'no-store'});
       if (!response.ok) return;
       const remote = await response.json();
-      if (!sync.busy && revision === seenRevision && (revision < 0 || !document.activeElement?.closest('form'))) takeRemote(remote);
+      if (!sync.busy && revision === seenRevision && (revision < 0 || !editing())) takeRemote(remote);
     } catch { /* Check again on the next interval. */ }
   }
 

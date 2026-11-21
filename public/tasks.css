@@ -43,3 +43,12 @@
   .task-title { font-size: .87rem; }
   .task-edit { flex-basis: 32px; width: 32px; }
 }
+.tasks-scope { display: inline-flex; gap: 4px; margin-bottom: 16px; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: var(--panel); }
+.tasks-scope button { min-height: 34px; padding: 6px 15px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-weight: 650; }
+.tasks-scope button[aria-pressed="true"] { background: var(--soft); color: var(--accent); }
+.tasks-day-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.tasks-day-nav button { width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-size: 1.3rem; }
+.planned-detail { display: block; margin-top: 3px; color: var(--muted); font-size: .8rem; font-weight: 400; }
+.planned-log-check { border-color: var(--accent); background: var(--accent); }
+.tasks-day-nav .tasks-today { width: auto; padding: 0 10px; font-size: .8rem; font-weight: 650; }
+.tasks-range { margin: 0 0 16px; color: var(--muted); font-size: .85rem; }
