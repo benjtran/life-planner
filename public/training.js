@@ -5,8 +5,10 @@
   const num = x => x == null || x === '' || !Number.isFinite(Number(x)) ? null : Number(x);
 
   function workoutView(ctx) {
-    const {date, today, esc} = ctx;
-    const workout = ctx.workoutFor(date);
+    const {date, today, esc, pretty, state} = ctx;
+    const {workoutForLogging, previousWorkoutSets} = window.DaymarkSchedule;
+    const previous = previousWorkoutSets(state, date);
+    const workout = workoutForLogging(state, date, previous);
     const {title, exercises} = workout;
     const scheduled = Boolean(title || exercises.length);
     const completed = Boolean(ctx.itemsFor(date).find(item => item.kind === 'workout')?.done);
@@ -15,16 +17,21 @@
       const id = esc(exercise.id);
       const name = esc(exercise.name || 'Untitled exercise');
       const sets = exercise.sets || [];
+      const last = previous.get(exercise.exerciseId);
+      const hint = (index, metric) => {
+        const reading = num(last?.sets[index]?.[metric]);
+        return reading === null ? '' : ` placeholder="${reading}" aria-description="Last session ${metric} ${reading}"`;
+      };
       return `<article class="training-exercise">
-        <div class="exercise-heading"><h3>${name}</h3>${exercise.exerciseId && exercise.kind !== 'cardio'
+        <div class="exercise-heading"><div><h3>${name}</h3>${last ? `<p class="last-workout">Last logged ${esc(pretty(last.date))} · ${last.sets.length} ${last.sets.length === 1 ? 'set' : 'sets'}</p>` : ''}</div>${exercise.exerciseId && exercise.kind !== 'cardio'
           ? `<button class="text-action" type="button" data-action="exercise-progress" data-exercise="${esc(exercise.exerciseId)}" aria-label="View progress for ${name}">Progress</button>` : ''}</div>
         ${exercise.kind === 'cardio'
           ? `<form class="cardio-entry" data-form="save-cardio" data-id="${id}"><label>Duration (min)<input type="number" inputmode="decimal" min="0" step="any" name="minutes" value="${esc(exercise.minutes)}"></label></form>`
           : `${sets.length ? `<div class="set-heading" aria-hidden="true"><span>Set</span><span>Reps</span><span>Weight</span></div>` : ''}
             <div class="sets">${sets.map((set, index) => `<form class="set-row" data-form="save-set" data-id="${id}" data-index="${index}">
               <span class="set-index">${index + 1}</span>
-              <input type="number" inputmode="numeric" enterkeyhint="next" min="0" step="any" name="reps" aria-label="${name}, set ${index + 1} reps" value="${esc(set.reps)}">
-              <input type="number" inputmode="decimal" min="0" step="any" name="weight" aria-label="${name}, set ${index + 1} weight" value="${esc(set.weight)}">
+              <input type="number" inputmode="numeric" enterkeyhint="next" min="0" step="any" name="reps" aria-label="${name}, set ${index + 1} reps" value="${esc(set.reps)}"${hint(index, 'reps')}>
+              <input type="number" inputmode="decimal" min="0" step="any" name="weight" aria-label="${name}, set ${index + 1} weight" value="${esc(set.weight)}"${hint(index, 'weight')}>
               <button class="icon-action" type="button" data-action="delete-set" data-id="${id}" data-index="${index}" aria-label="Remove ${name} set ${index + 1}">×</button>
             </form>`).join('')}</div>
             <button class="btn add-set" type="button" data-action="add-set" data-id="${id}" aria-label="Add set for ${name}">+ Add set</button>`}

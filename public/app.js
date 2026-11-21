@@ -18,7 +18,7 @@
   const today = dateKey(new Date());
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[char]));
   const id = () => globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  const {withDefaults, exerciseNameKey, workoutFor, pinWorkout, emptyWorkout, blankSet, activitiesFor, workoutItemId, formatRunPace, splitRunPace, applyWorkoutInputs} = window.DaymarkSchedule;
+  const {withDefaults, exerciseNameKey, pinWorkout, emptyWorkout, blankSet, activitiesFor, workoutItemId, formatRunPace, splitRunPace, applyWorkoutInputs} = window.DaymarkSchedule;
   const blankDay = () => ({workout: emptyWorkout(), cardio: ''});
   const taskTone = (due) => !due ? 'none' : due === today ? 'today' : due === addDays(today, 1) ? 'tomorrow' : due < today ? 'overdue' : 'later';
   const mondayOf = (value) => addDays(value, -((parseDate(value).getDay() + 6) % 7));
@@ -89,7 +89,7 @@
     $('heading').innerHTML = section === 'training' ? '' : `<div class="page-heading"><h1>${sections[section]}</h1>${section === 'tasks' ? `<button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button>` : ''}</div>`;
     const weekStart = mondayOf(date);
     const allItems = section === 'tasks' && taskScope === 'all' ? [...state.tasks.map(manualTask), ...Array.from({length: 7}, (_, offset) => activitiesFor(state, addDays(weekStart, offset))).flat()] : [];
-    const ctx = {state, date: section === 'training' ? workoutDate : date, today, view, esc, pretty, addDays, taskTone, taskFilter, taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, progressExercise, progressMetric, workoutFor: value => workoutFor(state, value)};
+    const ctx = {state, date: section === 'training' ? workoutDate : date, today, view, esc, pretty, addDays, taskTone, taskFilter, taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, progressExercise, progressMetric};
     $('view').innerHTML = window.DaymarkViews[section](ctx);
     const chart = $('view').querySelector('.chart-scroll');
     if (chart) chart.scrollLeft = chart.dataset.chartExercise === chartExercise && !chartAtEnd ? chartScroll : chart.scrollWidth;
@@ -485,10 +485,13 @@
       }
       case 'workout-today': return showWorkoutDate(today);
       case 'add-set': {
-        const nextSet = workoutFor(state, workoutDate).exercises.find(entry => entry.id === itemId)?.sets?.length || 0;
+        let nextSet;
         return Promise.resolve(changeWorkout('Set added.', (workout) => {
           const entry = workout.exercises.find(exercise => exercise.id === itemId);
-          if (entry) (entry.sets ||= []).push(blankSet());
+          if (!entry) return;
+          const sets = entry.sets ||= [];
+          nextSet = sets.length;
+          sets.push(blankSet());
         }, true)).then(saved => {
           if (!saved) return;
           workoutForms().find(form => form.dataset.id === itemId && Number(form.dataset.index) === nextSet)?.elements.namedItem('reps')?.focus();

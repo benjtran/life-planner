@@ -8,6 +8,8 @@
   const shortDate = date => format(date, {month: 'short', day: 'numeric'});
   const fullDate = date => format(date, {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'});
   const typeNames = {task: 'Task', workout: 'Lift', run: 'Run'};
+  const typeOrder = new Map(Object.keys(typeNames).map((kind, index) => [kind, index]));
+  const byType = (a, b) => (typeOrder.get(a.kind) ?? typeOrder.size) - (typeOrder.get(b.kind) ?? typeOrder.size);
   const typeName = kind => typeNames[kind] || 'Event';
   const exerciseClass = kind => kind === 'task' ? '' : ' is-exercise';
   const typeLabel = kind => `<span class="event-kind${exerciseClass(kind)}">${typeName(kind)}</span>`;
@@ -16,7 +18,7 @@
   function monthPreviews(items) {
     if (items.length <= 3) return items;
     const firstByKind = [...new Set(items.map(item => item.kind))].map(kind => items.find(item => item.kind === kind));
-    return [...firstByKind, ...items.filter(item => !firstByKind.includes(item))].slice(0, 3);
+    return [...firstByKind, ...items.filter(item => !firstByKind.includes(item))].slice(0, 3).sort(byType);
   }
 
   function eventList(ctx, items, compact = false) {
@@ -35,7 +37,7 @@
   }
 
   function monthCell(ctx, date, outside) {
-    const items = ctx.itemsFor(date);
+    const items = [...ctx.itemsFor(date)].sort(byType);
     const selected = date === ctx.date;
     const description = items.length ? items.map(item => `${typeName(item.kind)}: ${item.title}${item.done ? ', done' : ''}`).join('; ') : 'nothing scheduled';
     const kinds = [...new Set(items.map(item => item.kind))];

@@ -74,8 +74,36 @@
     return {title: titles.join(' + '), exercises: [...existing, ...recurring]};
   }
 
-  function pinWorkout(state, date) {
+  function previousWorkoutSets(state, date) {
+    const previous = new Map();
+    const dates = Object.keys(state.days).filter(day => day < date).sort().reverse();
+    for (const day of dates) {
+      for (const exercise of state.days[day].workout?.exercises || []) {
+        const id = exercise.exerciseId;
+        if (!id || exercise.kind === 'cardio' || (previous.has(id) && previous.get(id).date !== day)) continue;
+        const sets = (exercise.sets || []).filter(set => hasValue(set.reps) || hasValue(set.weight));
+        if (!sets.length) continue;
+        if (!previous.has(id)) previous.set(id, {date: day, sets: []});
+        previous.get(id).sets.push(...sets);
+      }
+    }
+    return previous;
+  }
+
+  const hasValue = value => value != null && value !== '' && Number.isFinite(Number(value));
+
+  function workoutForLogging(state, date, previous = previousWorkoutSets(state, date)) {
     const workout = workoutFor(state, date);
+    const saved = new Set((state.days[date]?.workout?.exercises || []).map(exercise => exercise.id));
+    const exercises = workout.exercises.map(exercise => {
+      const last = previous.get(exercise.exerciseId);
+      return !last || saved.has(exercise.id) ? exercise : {...exercise, sets: last.sets.map(blankSet)};
+    });
+    return {...workout, exercises};
+  }
+
+  function pinWorkout(state, date) {
+    const workout = workoutForLogging(state, date);
     const day = state.days[date] ||= {cardio: ''};
     day.workout = workout;
     day.workoutPinned = true;
@@ -142,5 +170,5 @@
     return workout;
   }
 
-  window.DaymarkSchedule = {withDefaults, exerciseNameKey, workoutFor, pinWorkout, emptyWorkout, blankSet, activitiesFor, workoutItemId, formatRunPace, splitRunPace, applyWorkoutInputs};
+  window.DaymarkSchedule = {withDefaults, exerciseNameKey, workoutForLogging, previousWorkoutSets, workoutFor, pinWorkout, emptyWorkout, blankSet, activitiesFor, workoutItemId, formatRunPace, splitRunPace, applyWorkoutInputs};
 })();

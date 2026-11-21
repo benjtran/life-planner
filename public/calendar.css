@@ -1,9 +1,15 @@
 .planner-calendar {
+  --calendar-task-bg: #e1e1e1;
+  --calendar-task-line: #9e9e9e;
   --exercise-bg: var(--soft);
   --exercise-border: var(--control-border);
   --exercise-text: var(--accent);
   min-width: 0;
   padding: clamp(14px, 2.1vw, 24px);
+}
+:root[data-theme="dark"] .planner-calendar {
+  --calendar-task-bg: #505050;
+  --calendar-task-line: #828282;
 }
 .calendar-toolbar h2 { font-size: 1.35rem; letter-spacing: -.025em; }
 .calendar-toolbar, .calendar-views, .schedule-date {
@@ -67,7 +73,7 @@
 .schedule-date button[aria-current="date"] span { background: var(--accent); color: var(--accent-ink); }
 .schedule-entries { display: grid; align-content: start; gap: 8px; }
 .calendar-events { display: grid; align-content: start; gap: 6px; list-style: none; padding: 0; margin: 0; min-width: 0; }
-.calendar-event { min-width: 0; padding: 8px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); font-size: .8125rem; line-height: 1.35; overflow-wrap: anywhere; }
+.calendar-event { min-width: 0; padding: 8px 9px; border: 1px solid var(--calendar-task-line); border-radius: 6px; background: var(--calendar-task-bg); color: var(--ink); font-size: .8125rem; line-height: 1.35; overflow-wrap: anywhere; }
 .calendar-event.is-exercise { border-color: var(--exercise-border); background: var(--exercise-bg); }
 .event-kind { display: block; margin-bottom: 3px; color: var(--muted); font-size: .75rem; font-weight: 700; }
 .event-kind.is-exercise { color: var(--exercise-text); }
@@ -83,7 +89,7 @@
   .month-number { width: 23px; height: 23px; }
   .calendar-toolbar h2 { font-size: 1.17rem; }
   .month-kinds { display: grid; gap: 2px; width: 100%; }
-  .month-kinds .event-kind { margin: 0; padding: 1px 0; border-radius: 3px; background: var(--canvas); text-align: center; font-size: .6875rem; }
-  .month-kinds .event-kind.is-exercise { background: var(--exercise-bg); }
+  .month-kinds .event-kind { margin: 0; padding: 1px 0; border-radius: 3px; background: var(--calendar-task-bg); box-shadow: inset 0 0 0 1px var(--calendar-task-line); text-align: center; font-size: .6875rem; }
+  .month-kinds .event-kind.is-exercise { background: var(--exercise-bg); box-shadow: none; }
   .month-cell .calendar-events { display: none; }
 }

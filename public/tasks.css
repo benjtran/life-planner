@@ -14,9 +14,16 @@
 .task-date { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; padding: 14px 19px; background: var(--panel); color: var(--muted); font-size: .86rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .task-status { display: flex; align-items: center; gap: 5px; font-size: .8rem; font-weight: 750; line-height: 1.2; }
 .task-status-icon { flex: none; width: 15px; height: 15px; }
-.task-date-overdue.has-deadline-status .task-date { background: #86264a; color: #fff; }
-.task-date-today.has-deadline-status .task-date { background: #235f55; color: #fff; }
-.task-date-tomorrow.has-deadline-status .task-date { background: #ffdb7f; color: #231701; }
+.task-date-overdue.has-deadline-status .task-date, .task-day-header.deadline-overdue { background: #86264a; color: #fff; }
+.task-date-today.has-deadline-status .task-date, .task-day-header.deadline-today { background: #235f55; color: #fff; }
+.task-date-tomorrow.has-deadline-status .task-date, .task-day-header.deadline-tomorrow { background: #ffdb7f; color: #231701; }
+.task-day { min-width: 0; }
+.task-day-header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 14px; padding: 10px 16px; border-bottom: 1px solid var(--line); border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0; background: var(--chrome); }
+.task-day-header h2 { font-size: .95rem; font-weight: 700; }
+.task-day-kind + .task-day-kind { border-top: 1px solid var(--line); }
+.task-day-kind h3 { padding: 8px 16px 0; color: var(--muted); font-size: .875rem; }
+.task-day .task-list { border: 0; border-radius: 0 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px); }
+.task-day .task-list-row { grid-template-columns: minmax(0, 1fr); }
 .task-content { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 10px 14px 10px 19px; }
 .task-check { display: grid; place-items: center; flex: 0 0 26px; width: 26px; height: 26px; padding: 0; border: 1.5px solid var(--control-border); border-radius: 6px; background: var(--chrome); color: var(--accent-ink); font-size: .9rem; line-height: 1; }
 .task-check:hover { border-color: var(--accent); }
@@ -28,9 +35,6 @@
 .tasks-empty { padding: 38px 20px; text-align: center; }
 .tasks-empty strong { font-size: 1.125rem; font-weight: 700; }
 .tasks-empty p { margin-top: 6px; color: var(--muted); font-size: .88rem; }
-.task-list-row.is-compact { grid-template-columns: minmax(105px, 135px) minmax(0, 1fr); }
-.task-list-row.is-compact .task-date { padding: 10px 12px; font-size: .78rem; }
-.task-list-row.is-compact .task-content { padding: 7px 8px 7px 12px; gap: 10px; }
 @media (max-width: 560px) {
   .task-groups { gap: 20px; }
   .task-list-row { grid-template-columns: 106px minmax(0, 1fr); }

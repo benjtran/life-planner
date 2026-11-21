@@ -5,7 +5,7 @@ import {runInNewContext} from 'node:vm';
 
 const window = {};
 runInNewContext(readFileSync(new URL('../public/schedule.js', import.meta.url), 'utf8'), {window});
-const {withDefaults, workoutFor, pinWorkout, blankSet, activitiesFor, applyWorkoutInputs, formatRunPace, splitRunPace} = window.DaymarkSchedule;
+const {withDefaults, workoutFor, workoutForLogging, previousWorkoutSets, pinWorkout, blankSet, activitiesFor, applyWorkoutInputs, formatRunPace, splitRunPace} = window.DaymarkSchedule;
 
 function planner() {
   return withDefaults({days: {}, tasks: [], templates: [{
@@ -76,6 +76,31 @@ test('appending a set preserves typed reps and weight in the earlier set and its
     assert.equal(first.weight, 60);
   }
   assert.equal(workoutFor(beforeAdd, date).exercises[0].sets.length, 1);
+});
+
+test('a new session suggests the latest recorded sets across workout days without logging the hints', () => {
+  const state = planner();
+  const record = (date, title, sets) => {
+    state.days[date] = {workout: {title, exercises: [{id: 'lat', exerciseId: 'lat', name: 'Lat pulldown', sets}]}};
+  };
+  record('2026-11-18', 'Leg day', [{reps: 1, weight: 45}]);
+  record('2026-11-20', 'Upper day', [{reps: 10, weight: 60}, {reps: 8, weight: 0}, {reps: null, weight: null}]);
+  record('2026-11-21', 'Leg day', [{reps: null, weight: null}]);
+  record('2026-11-25', 'Upper day', [{reps: 12, weight: 80}]);
+  const date = '2026-11-23';
+  const last = previousWorkoutSets(state, date).get('lat');
+  assert.equal(last.date, '2026-11-20');
+  assert.equal(last.sets.length, 2);
+  assert.equal(last.sets[1].weight, 0);
+  const workout = workoutForLogging(state, date);
+  assert.equal(state.days[date], undefined);
+  assert.equal(workout.exercises[0].sets.length, 2);
+  assert.ok(workout.exercises[0].sets.every(set => set.reps === null && set.weight === null));
+  const saved = applyWorkoutInputs(state, date, [{form: 'save-set', id: 'lat', index: 1, values: {reps: '9', weight: ''}}]);
+  assert.equal(saved.exercises[0].sets[1].reps, 9);
+  assert.ok(saved.exercises[0].sets.every(set => set.weight === null));
+  saved.exercises[0].sets.splice(0, 1);
+  assert.equal(workoutForLogging(state, date).exercises[0].sets.length, 1, 'deleted rows stay deleted');
 });
 
 test('activities show a single workout and put scheduled runs on their weekday only', () => {
