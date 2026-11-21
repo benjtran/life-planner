@@ -43,7 +43,8 @@ export function createHostedHandler(assets) {
 
       const asset = assets[pathname === '/' ? '/index.html' : pathname];
       if (!asset || !['GET', 'HEAD'].includes(request.method)) return json({error: 'Not found'}, 404);
-      return new Response(request.method === 'HEAD' ? null : asset.body, {headers: {
+      const body = asset.base64 ? Uint8Array.from(atob(asset.base64), byte => byte.charCodeAt(0)) : asset.body;
+      return new Response(request.method === 'HEAD' ? null : body, {headers: {
         'Content-Type': asset.type,
         'Cache-Control': 'no-store',
         'X-Content-Type-Options': 'nosniff',

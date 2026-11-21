@@ -53,14 +53,15 @@
   let revision = saved?.revision ?? -1;
   const sections = {calendar: 'Calendar', tasks: 'Tasks', training: 'Training'};
   const icons = {
-    mark: '<path d="M12 2v20M2 12h20M5 5l14 14M19 5 5 19"/>',
+    mark: '<circle cx="12" cy="12" r="2.5"/><path d="M8 5H7a2 2 0 0 0-2 2v1M19 8V7a2 2 0 0 0-2-2h-1M16 19h1a2 2 0 0 0 2-2v-1M5 16v1a2 2 0 0 0 2 2h1"/>',
     calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 10h18m-14 5h2m3 0h2m3 0h1"/>',
     tasks: '<path d="m3 7 2 2 3-4m-5 9 2 2 3-4m3-5h10m-10 7h10m-10 5h10"/>',
     training: '<path d="M3 10v4m3-7v10m12-10v10m3-7v4m-15-2h12"/>',
     devices: '<rect x="3" y="4" width="14" height="11" rx="2"/><rect x="15" y="10" width="6" height="10" rx="1.5"/><path d="M7 19h4m-2-4v4"/>',
     undo: '<path d="M8 5 3 10l5 5m-5-5h11a5 5 0 0 1 0 10h-2"/>',
     redo: '<path d="m16 5 5 5-5 5m5-5H10a5 5 0 0 0 0 10h2"/>',
-    plus: '<path d="M12 5v14M5 12h14"/>'
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    moon: '<path d="M20.8 13.4A9 9 0 0 1 10.6 3.2a9 9 0 1 0 10.2 10.2Z"/>'
   };
   const icon = (name) => `<svg class="icon" aria-hidden="true" viewBox="0 0 24 24">${icons[name]}</svg>`;
   const brand = (extra = '') => `<div class="brand ${extra}"><span class="brand-mark">${icon('mark')}</span>lifesolver</div>`;
@@ -83,7 +84,8 @@
     const storageLabel = hosted ? (revision < 0 ? 'Connecting…' : 'Synced to your account') : sync.url || (sync.code && !sync.host) ? 'Shared on Wi‑Fi' : 'Saved on this computer';
     $('sidebar').innerHTML = `${brand()}<nav aria-label="Main navigation">${nav}</nav><div class="sidebar-bottom"><button class="nav-button" type="button" data-action="devices">${icon('devices')} Devices</button><small>${storageLabel}</small></div>`;
     $('mobile-nav').innerHTML = nav;
-    $('topbar').innerHTML = `${brand('top-brand')}<div class="top-actions"><button type="button" class="btn mobile-devices" data-action="devices" aria-label="Connect devices">${icon('devices')}</button><button type="button" class="btn" data-action="undo" aria-label="Undo" title="Undo (Ctrl or Cmd + Z)" ${past.length && !sync.busy ? '' : 'disabled'}>${icon('undo')}<span class="tool-text">Undo</span></button><button type="button" class="btn icon-button" data-action="redo" aria-label="Redo" title="Redo (Ctrl or Cmd + Shift + Z)" ${future.length && !sync.busy ? '' : 'disabled'}>${icon('redo')}</button></div>`;
+    const dark = document.documentElement?.dataset.theme === 'dark';
+    $('topbar').innerHTML = `${brand('top-brand')}<div class="top-actions"><button type="button" class="btn theme-toggle" data-action="toggle-theme" aria-label="Dark mode" title="Dark mode" aria-pressed="${dark}">${icon('moon')}<span class="tool-text">Dark mode</span></button><button type="button" class="btn mobile-devices" data-action="devices" aria-label="Connect devices">${icon('devices')}</button><button type="button" class="btn" data-action="undo" aria-label="Undo" title="Undo (Ctrl or Cmd + Z)" ${past.length && !sync.busy ? '' : 'disabled'}>${icon('undo')}<span class="tool-text">Undo</span></button><button type="button" class="btn icon-button" data-action="redo" aria-label="Redo" title="Redo (Ctrl or Cmd + Shift + Z)" ${future.length && !sync.busy ? '' : 'disabled'}>${icon('redo')}</button></div>`;
     $('heading').innerHTML = section === 'training' ? '' : `<div class="page-heading"><h1>${sections[section]}</h1>${section === 'tasks' ? `<button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button>` : ''}</div>`;
     const weekStart = mondayOf(date);
     const allItems = section === 'tasks' && taskScope === 'all' ? [...state.tasks.map(manualTask), ...Array.from({length: 7}, (_, offset) => activitiesFor(state, addDays(weekStart, offset))).flat()] : [];
@@ -483,6 +485,7 @@
         taskFilter = 'all';
         navigate('tasks');
       });
+      case 'toggle-theme': return window.LifesolverAppearance.toggle();
       case 'undo': return undo();
       case 'redo': return redo();
       case 'dismiss-toast': $('toast').hidden = true; return;

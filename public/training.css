@@ -86,7 +86,7 @@ body:has(.workout-actions) .toast { bottom: 76px; }
 .chart-card {
   --plot-height: clamp(235px, 30vw, 370px);
   --chart-ink: var(--accent);
-  --chart-set: #748db6;
+  --chart-set: var(--control-border);
   --chart-inset: 12px;
   min-width: 0;
   padding: clamp(12px, 2.6vw, 26px);

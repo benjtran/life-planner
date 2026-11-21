@@ -1,7 +1,7 @@
 .planner-calendar {
-  --exercise-bg: #263651;
-  --exercise-border: #50678e;
-  --exercise-text: #c1d7ff;
+  --exercise-bg: var(--soft);
+  --exercise-border: var(--control-border);
+  --exercise-text: var(--accent);
   min-width: 0;
   padding: clamp(14px, 2.1vw, 24px);
 }
@@ -67,7 +67,7 @@
 .schedule-date button[aria-current="date"] span { background: var(--accent); color: var(--accent-ink); }
 .schedule-entries { display: grid; align-content: start; gap: 8px; }
 .calendar-events { display: grid; align-content: start; gap: 6px; list-style: none; padding: 0; margin: 0; min-width: 0; }
-.calendar-event { min-width: 0; padding: 8px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--raised); color: var(--ink); font-size: .8125rem; line-height: 1.35; overflow-wrap: anywhere; }
+.calendar-event { min-width: 0; padding: 8px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); font-size: .8125rem; line-height: 1.35; overflow-wrap: anywhere; }
 .calendar-event.is-exercise { border-color: var(--exercise-border); background: var(--exercise-bg); }
 .event-kind { display: block; margin-bottom: 3px; color: var(--muted); font-size: .75rem; font-weight: 700; }
 .event-kind.is-exercise { color: var(--exercise-text); }

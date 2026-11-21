@@ -18,7 +18,14 @@ const lanIp = process.env.DAYMARK_LAN_IP || interfaces[0]?.address;
 if (lan && !interfaces.some(({address}) => address === lanIp)) throw new Error('No private Wi-Fi address found. Set DAYMARK_LAN_IP to this computer’s private IPv4 address.');
 const localUrl = `http://127.0.0.1:${port}/`;
 const lanUrl = lan ? `http://${lanIp}:${port}/` : '';
-const types = {'/index.html':'text/html; charset=utf-8', '/app.js':'text/javascript; charset=utf-8', '/calendar.js':'text/javascript; charset=utf-8', '/training.js':'text/javascript; charset=utf-8', '/tasks.js':'text/javascript; charset=utf-8', '/schedule.js':'text/javascript; charset=utf-8', '/style.css':'text/css; charset=utf-8', '/calendar.css':'text/css; charset=utf-8', '/training.css':'text/css; charset=utf-8', '/tasks.css':'text/css; charset=utf-8', '/manifest.webmanifest':'application/manifest+json', '/daymark-icon.svg':'image/svg+xml'};
+const types = {
+  '/index.html':'text/html; charset=utf-8',
+  '/app.js':'text/javascript; charset=utf-8', '/appearance.js':'text/javascript; charset=utf-8', '/calendar.js':'text/javascript; charset=utf-8',
+  '/training.js':'text/javascript; charset=utf-8', '/tasks.js':'text/javascript; charset=utf-8', '/schedule.js':'text/javascript; charset=utf-8',
+  '/style.css':'text/css; charset=utf-8', '/calendar.css':'text/css; charset=utf-8', '/training.css':'text/css; charset=utf-8', '/tasks.css':'text/css; charset=utf-8',
+  '/manifest.webmanifest':'application/manifest+json', '/daymark-icon.svg':'image/svg+xml', '/lifesolver-icon-180.png':'image/png',
+  '/geist.woff2':'font/woff2', '/geist-OFL.txt':'text/plain; charset=utf-8'
+};
 const allowedHosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`, ...(lan ? [`${lanIp}:${port}`] : [])]);
 const failedCodes = new Map();
 let planner = {revision: 0, state: null, past: [], future: []};
