@@ -120,7 +120,7 @@
     </div>`;
   };
 
-  const progressMetrics = {weight: 'Weight', reps: 'Reps'};
+  const progressMetrics = {weight: 'Weight', reps: 'Reps', volume: 'Volume'};
   const averageNumber = new Intl.NumberFormat('en', {maximumFractionDigits: 2});
   const axisNumber = new Intl.NumberFormat('en', {maximumSignificantDigits: 12});
   const shortProgressDate = new Intl.DateTimeFormat('en', {month: 'short', day: 'numeric'});
@@ -142,8 +142,13 @@
     return [...groups.values()].flatMap(({name, dates}) => {
       const records = [];
       for (const [date, entries] of dates) {
-        const sets = entries.map((set, index) => ({index: index + 1, weight: num(set.weight), reps: num(set.reps)}))
-          .filter(set => set.weight !== null || set.reps !== null);
+        const sets = entries.flatMap((set, index) => {
+          const weight = num(set.weight);
+          const reps = num(set.reps);
+          if (weight === null && reps === null) return [];
+          const volume = weight === null || reps === null ? null : num(weight * reps);
+          return [{index: index + 1, weight, reps, volume}];
+        });
         if (sets.length) records.push({date, sets});
       }
       return records.length ? [{name, records}] : [];
@@ -175,17 +180,23 @@
     const {name, records} = selection;
     const sessions = records.map(record => ({date: record.date, sets: record.sets.filter(set => set[metric] !== null), mean: averageFor(record.sets, metric)}));
     const values = sessions.flatMap(day => day.sets.map(set => set[metric]));
-    if (!values.length) return `<p class="chart-empty">No ${progressMetrics[metric].toLowerCase()} logged for ${esc(name)}.</p>`;
+    if (!values.length) {
+      const hint = metric === 'volume' ? 'Log both weight and reps in the same set to see volume.' : `No ${progressMetrics[metric].toLowerCase()} logged for ${name}.`;
+      return `<p class="chart-empty">${esc(hint)}</p>`;
+    }
 
     const {ticks, y} = progressAxis(values);
     const step = 100 / sessions.length;
     const trend = sessions.flatMap((day, index) => day.mean === null ? [] : [`${(index + .5) * step},${y(day.mean)}`]).join(' ');
     const slotWidth = Math.max(86, ...records.map(day => day.sets.length * 18 + 40));
-    const otherMetric = metric === 'weight' ? 'reps' : 'weight';
+    const otherMetrics = ['weight', 'reps'].filter(key => key !== metric);
     const point = (date, label, number, mean, offset = 0, set = null) => {
       const dateLabel = pretty(date);
-      const readings = [`${progressMetrics[metric]} ${mean ? displayAverage(number) : number}`];
-      if (set && set[otherMetric] !== null) readings.push(`${progressMetrics[otherMetric]} ${set[otherMetric]}`);
+      const reading = mean ? displayAverage(number) : metric === 'volume' ? axisNumber.format(number) : number;
+      const readings = [`${progressMetrics[metric]} ${reading}`];
+      for (const key of otherMetrics) {
+        if (set && set[key] !== null) readings.push(`${progressMetrics[key]} ${set[key]}`);
+      }
       const metricValue = readings.join(' · ');
       return `<button type="button" class="chart-point ${mean ? 'chart-point-mean' : 'chart-point-set'}"
         style="--point-y:${y(number)}%; --point-offset:${offset}px" data-chart-point data-point-date="${esc(dateLabel)}"
@@ -214,18 +225,20 @@
     </div>`;
   }
 
-  function progressHistory(ctx, records) {
+  function progressHistory(ctx, records, metric) {
     const {esc, pretty} = ctx;
+    const showVolume = metric === 'volume';
     return `<section class="progress-history" aria-labelledby="progress-history-title">
       <h2 id="progress-history-title">Session history</h2>
       <div class="history-table-wrap"><table class="history-table">
-        <thead><tr><th scope="col">Date</th><th scope="col">Sets</th><th scope="col">Avg. weight</th><th scope="col">Avg. reps</th></tr></thead>
+        <thead><tr><th scope="col">Date</th><th scope="col">Sets</th><th scope="col">Avg. weight</th><th scope="col">Avg. reps</th>${showVolume ? '<th scope="col">Avg. volume</th>' : ''}</tr></thead>
         <tbody>${records.slice().reverse().map(({date, sets}) => `<tr>
           <th scope="row">${esc(pretty(date))}</th>
           <td><details><summary aria-label="${esc(`View ${sets.length} ${sets.length === 1 ? 'set' : 'sets'} on ${pretty(date)}`)}">${sets.length} ${sets.length === 1 ? 'set' : 'sets'}</summary>
             <ul class="history-sets" role="list">${sets.map(set => `<li><strong>Set ${set.index}</strong><span>${set.weight === null ? 'Weight —' : `Weight ${set.weight}`}</span><span>${set.reps === null ? 'Reps —' : `Reps ${set.reps}`}</span></li>`).join('')}</ul>
           </details></td>
           <td>${displayAverage(averageFor(sets, 'weight'))}</td><td>${displayAverage(averageFor(sets, 'reps'))}</td>
+          ${showVolume ? `<td>${displayAverage(averageFor(sets, 'volume'))}</td>` : ''}
         </tr>`).join('')}</tbody>
       </table></div>
     </section>`;
@@ -239,6 +252,9 @@
     if (!selected) return '<div class="training-empty"><h2>No progress yet</h2><p>Log sets for a strength exercise to see your progress.</p></div>';
 
     const metric = ctx.progressMetric || (selected.records.some(day => day.sets.some(set => set.weight !== null)) ? 'weight' : 'reps');
+    const chartNote = metric === 'volume'
+      ? 'Set volume is weight × reps. The daily average includes sets with both values recorded.'
+      : `Each daily average uses the sets with a ${progressMetrics[metric].toLowerCase()} value recorded that day.`;
     return `<div class="progress-view">
       <div class="progress-intro"><h2>Progress</h2><label class="progress-selector">Exercise<select data-change="progress-exercise">${options.map(option => `<option value="${esc(option.name)}"${option === selected ? ' selected' : ''}>${esc(option.name)}</option>`).join('')}</select></label></div>
       <article class="panel chart-card" aria-labelledby="progress-chart-title">
@@ -248,9 +264,9 @@
         </div>
         <div class="chart-legend"><span><i class="legend-mean"></i>Daily average</span><span><i class="legend-set"></i>Individual sets</span></div>
         ${progressChart(ctx, selected, metric)}
-        <p class="history-note">Each daily average uses the sets with a ${progressMetrics[metric].toLowerCase()} value recorded that day.</p>
+        <p class="history-note">${chartNote}</p>
       </article>
-      ${progressHistory(ctx, selected.records)}
+      ${progressHistory(ctx, selected.records, metric)}
     </div>`;
   }
 

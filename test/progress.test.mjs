@@ -44,3 +44,20 @@ test('progress handles constant values, reps-only exercises, and blank sessions'
   assert.match(render(days, 'weight'), /No weight logged for Lat pulldown/);
   assert.match(render({'2026-11-18': days['2026-11-18']}), /No progress yet/);
 });
+
+test('volume averages individual weight × reps products and skips incomplete sets', () => {
+  const days = {
+    '2026-11-18': exercises({weight: 0, reps: 8}, {weight: 50, reps: 0}),
+    '2026-11-19': exercises({weight: 40, reps: 10}, {weight: 80, reps: 5}, {weight: 60, reps: 8}),
+    '2026-11-20': exercises({weight: 70, reps: null}, {weight: '', reps: 7})
+  };
+  const volume = render(days, 'volume');
+  assert.match(volume, /data-metric="volume" aria-pressed="true"/);
+  assert.match(volume, /2026-11-18, Daily average · 2 sets, Volume 0/);
+  assert.match(volume, /2026-11-19, Set 3, Volume 480 · Weight 60 · Reps 8/);
+  assert.match(volume, /2026-11-19, Daily average · 3 sets, Volume 426\.67/);
+  assert.doesNotMatch(volume, /aria-label="2026-11-20, (Daily average|Set)/);
+  assert.match(volume, /<th scope="col">Avg\. volume<\/th>/);
+  assert.match(volume, /<td>426\.67<\/td>/);
+  assert.match(render({'2026-11-20': days['2026-11-20']}, 'volume'), /Log both weight and reps in the same set/);
+});
