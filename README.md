@@ -1,6 +1,6 @@
 # Daymark
 
-Daymark is a personal planner for workouts, meals, and tasks. The prototype includes a daily, weekly, monthly, and yearly calendar, editable meal and workout plans, exercise history, and undo and redo for saved changes. It starts with editable sample data.
+Daymark is a personal planner for tasks and exercise. Use the Planner to manage deadlines and check off tasks and exercises from the daily, weekly, monthly, and yearly calendar. Use Training to plan workouts, log sets and cardio, and view your progress. Undo and redo work across both sections. The prototype starts with editable sample data.
 
 ## Run on your computer
 

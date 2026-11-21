@@ -2,7 +2,7 @@
   "name": "life-planner",
   "version": "0.1.0",
   "private": true,
-  "description": "A personal planner for tasks, meals, and training.",
+  "description": "A personal planner for tasks and training.",
   "type": "module",
   "engines": { "node": ">=22" },
   "scripts": {

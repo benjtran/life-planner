@@ -1,62 +1,152 @@
-(function () {
-  const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const dateObj = value => new Date(value + 'T12:00:00');
-  const key = d => [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
-  const shift = (value, n) => { const d = dateObj(value); d.setDate(d.getDate() + n); return key(d); };
-  const fmt = (value, opts) => dateObj(value).toLocaleDateString('en-US', opts);
-  const record = (state, date) => (state.days || {})[date] || {};
-  const tasksFor = (state, date) => (state.tasks || []).filter(t => t.due === date);
-  const mealsFor = day => Object.values(day.meals || {}).filter(Boolean);
-  const hasWorkout = day => !!(day.workout && (day.workout.title || (day.workout.exercises || []).length));
+(() => {
+  'use strict';
 
-  function indicators(state, date) {
-    const day = record(state, date);
-    return `<span class="cal-dots" aria-hidden="true">${tasksFor(state, date).length ? '<i class="cal-dot task"></i>' : ''}${hasWorkout(day) || day.cardio ? '<i class="cal-dot workout"></i>' : ''}${mealsFor(day).length ? '<i class="cal-dot meal"></i>' : ''}</span>`;
+  const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dateObj = value => new Date(`${value}T12:00:00`);
+  const format = (value, options) => dateObj(value).toLocaleDateString('en', options);
+  const dateKey = date => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+  const shortDate = date => format(date, {month: 'short', day: 'numeric'});
+  const fullDate = date => format(date, {weekday: 'long', month: 'long', day: 'numeric'});
+  const taskLabels = {today: 'Due today', tomorrow: 'Due tomorrow', overdue: 'Overdue'};
+
+  function indexTasks(tasks) {
+    const byDate = new Map();
+    for (const task of tasks) {
+      if (!byDate.has(task.due)) byDate.set(task.due, []);
+      byDate.get(task.due).push(task);
+    }
+    return byDate;
   }
-  function dateButton(ctx, date, extra = '') {
-    const {state, today, esc} = ctx;
+
+  function movement(ctx, date) {
+    const day = ctx.state.days[date];
+    const exercises = (day?.workout?.exercises || []).map(exercise => ({...exercise, action: 'toggle-exercise'}));
+    if (day?.cardio) exercises.push({name: day.cardio, kind: 'cardio', done: day.cardioDone, action: 'toggle-cardio'});
+    return {title: day?.workout?.title, exercises};
+  }
+
+  function taskRow(ctx, task) {
+    const {esc, taskTone} = ctx;
+    const tone = task.done ? 'done' : taskTone(task.due);
+    const status = taskLabels[tone];
+    const dueDate = task.due ? shortDate(task.due) : 'No due date';
+    const detail = tone === 'today' || tone === 'tomorrow' ? status : [status, dueDate].filter(Boolean).join(' · ');
+    return `<li class="planner-row planner-task tone-${tone}">
+      ${checkButton(esc, task.title, task.done, 'toggle-task', task.id)}
+      <div class="planner-row-text"><span>${esc(task.title)}</span><small>${esc(detail)}</small></div>
+      <button class="planner-edit" type="button" data-action="edit-task" data-id="${esc(task.id)}" aria-label="Edit ${esc(task.title)}">···</button>
+    </li>`;
+  }
+
+  function checkButton(esc, title, done, action, id = '', date = '') {
+    return `<button class="planner-check" type="button" data-action="${action}" data-id="${esc(id)}" data-date="${esc(date)}" aria-label="${done ? 'Restore' : 'Complete'} ${esc(title)}"><span aria-hidden="true">${done ? '✓' : ''}</span></button>`;
+  }
+
+  function exerciseRow(ctx, exercise, date) {
+    const {esc} = ctx;
+    const type = exercise.kind === 'cardio' ? 'Cardio' : 'Exercise';
+    return `<li class="planner-row planner-exercise ${exercise.done ? 'tone-done' : ''}">
+      ${checkButton(esc, exercise.name, exercise.done, exercise.action, exercise.id, date)}
+      <div class="planner-row-text"><span>${esc(exercise.name)}</span><small>${type}</small></div>
+    </li>`;
+  }
+
+  function dayEntries(ctx, date) {
+    const tasks = ctx.tasksByDate.get(date) || [];
+    const {title, exercises} = movement(ctx, date);
+    const open = tasks.filter(task => !task.done);
+    const done = tasks.filter(task => task.done);
+    const list = (html) => `<ul class="planner-entries">${html}</ul>`;
+    return `${open.length ? list(open.map(task => taskRow(ctx, task)).join('')) : ''}
+      ${title || exercises.length ? `<div class="planner-movement"><strong>${ctx.esc(title || 'Workout')}</strong></div>` : ''}
+      ${exercises.length ? list(exercises.map(exercise => exerciseRow(ctx, exercise, date)).join('')) : ''}
+      ${done.length ? list(done.map(task => taskRow(ctx, task)).join('')) : ''}
+      ${!tasks.length && !title && !exercises.length ? '<p class="planner-empty">No items scheduled.</p>' : ''}`;
+  }
+
+  function monthCell(ctx, date, outside) {
+    const {esc, today} = ctx;
+    const tasks = ctx.tasksByDate.get(date) || [];
+    const {title, exercises} = movement(ctx, date);
     const selected = date === ctx.date;
-    const day = record(state, date);
-    const dateLabel = fmt(date, {weekday:'long', month:'long', day:'numeric', year:'numeric'});
-    const plans = [tasksFor(state, date).length && 'tasks', (hasWorkout(day) || day.cardio) && 'movement', mealsFor(day).length && 'meals'].filter(Boolean);
-    return `<button type="button" class="cal-date ${extra} ${selected ? 'is-selected' : ''} ${date === today ? 'is-today' : ''}" data-action="select-date" data-date="${date}" aria-label="${esc([dateLabel, ...plans].join(', '))}" ${selected ? 'aria-pressed="true"' : 'aria-pressed="false"'}><span>${dateObj(date).getDate()}</span>${indicators(state, date)}</button>`;
+    const descriptions = [fullDate(date), tasks.length && `${tasks.length} ${tasks.length === 1 ? 'task' : 'tasks'}`, (title || exercises.length) && 'workout'].filter(Boolean);
+    return `<button type="button" class="month-cell${outside ? ' is-outside' : ''}${selected ? ' is-selected' : ''}" data-action="select-date" data-date="${date}" aria-label="${esc(descriptions.join(', '))}" aria-pressed="${selected}" ${date === today ? 'aria-current="date"' : ''}>
+      <span class="month-number">${dateObj(date).getDate()}</span><span class="month-markers" aria-hidden="true">${tasks.length ? '<i class="marker task-marker"></i>' : ''}${title || exercises.length ? '<i class="marker workout-marker"></i>' : ''}</span>
+    </button>`;
   }
+
   function monthGrid(ctx, anchor, mini = false) {
-    const d = dateObj(anchor), first = new Date(d.getFullYear(), d.getMonth(), 1, 12);
-    const start = shift(key(first), -first.getDay());
-    const dayCount = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-    const cells = Array.from({length: mini ? 42 : 7 * Math.ceil((dayCount + first.getDay()) / 7)}, (_, i) => {
-      const date = shift(start, i);
-      if (mini && dateObj(date).getMonth() !== d.getMonth()) return '<span></span>';
-      return dateButton(ctx, date, dateObj(date).getMonth() !== d.getMonth() ? 'is-outside' : '');
+    const day = dateObj(anchor);
+    const first = new Date(day.getFullYear(), day.getMonth(), 1, 12);
+    const length = new Date(day.getFullYear(), day.getMonth() + 1, 0).getDate();
+    const start = ctx.addDays(dateKey(first), -first.getDay());
+    const cells = Array.from({length: mini ? 42 : 7 * Math.ceil((length + first.getDay()) / 7)}, (_, i) => {
+      const date = ctx.addDays(start, i);
+      const outside = dateObj(date).getMonth() !== day.getMonth();
+      return mini && outside ? '<span></span>' : monthCell(ctx, date, outside);
     }).join('');
-    return `<div class="cal-grid ${mini ? 'is-mini' : ''}"><div class="cal-weekdays">${weekdays.map(w => `<span>${mini ? w[0] : w}</span>`).join('')}</div><div class="cal-cells">${cells}</div></div>`;
+    return `<div class="planner-month${mini ? ' is-mini' : ''}"><div class="month-weekdays">${weekdays.map(day => `<span>${mini ? day[0] : day}</span>`).join('')}</div><div class="month-grid">${cells}</div></div>`;
   }
-  function agenda(ctx) {
-    const {state, date, esc} = ctx, day = record(state, date), tasks = tasksFor(state, date), meals = day.meals || {};
-    const workout = day.workout || {};
-    const exercises = (workout.exercises || []).map((exercise) => exercise.name).filter(Boolean).join(' · ');
-    return `<aside class="cal-agenda" aria-label="Selected day agenda"><div class="cal-agenda-head"><div><p class="cal-eyebrow">YOUR DAY</p><h3>${esc(fmt(date, {weekday:'long'}))}</h3><p>${esc(fmt(date, {month:'long', day:'numeric', year:'numeric'}))}</p></div><span class="cal-date-badge">${dateObj(date).getDate()}</span></div>
-      <div class="cal-agenda-section"><div class="cal-section-head"><h4>Tasks <span>${tasks.length}</span></h4><button type="button" data-action="open-tasks">View all ↗</button></div>${tasks.length ? `<div class="cal-task-list">${tasks.map(t => `<button type="button" class="cal-task ${t.done ? 'is-done' : ''}" data-action="toggle-task" data-id="${esc(String(t.id))}" aria-pressed="${!!t.done}"><span class="cal-check">${t.done ? '✓' : ''}</span><span>${esc(t.title)}</span></button>`).join('')}</div>` : '<p class="cal-empty">A clear schedule. Enjoy the space.</p>'}</div>
-      <div class="cal-agenda-section"><div class="cal-section-head"><h4>Movement</h4><button type="button" data-action="open-workout">Edit plan</button></div>${hasWorkout(day) ? `<div class="cal-entry"><span class="cal-entry-icon workout" aria-hidden="true">✳</span><div><strong>${esc(workout.title || 'Workout')}</strong>${exercises ? `<small>${esc(exercises)}</small>` : ''}</div></div>` : day.cardio ? '' : '<p class="cal-empty">No movement planned.</p>'}${day.cardio ? `<div class="cal-entry"><span class="cal-entry-icon workout" aria-hidden="true">↗</span><div><strong>Cardio</strong><small>${esc(day.cardio)}</small></div></div>` : ''}</div>
-      <div class="cal-agenda-section"><div class="cal-section-head"><h4>Meals</h4><button type="button" data-action="open-meals">View ↗</button></div>${mealsFor(day).length ? Object.entries(meals).filter(([,v]) => v).map(([name, value]) => `<div class="cal-meal"><span>${esc(name)}</span><strong>${esc(value)}</strong></div>`).join('') : '<p class="cal-empty">Nothing logged yet.</p>'}</div></aside>`;
+
+  function schedule(ctx, dates) {
+    return `<div class="planner-schedule${dates.length === 1 ? ' is-day' : ' is-week'}" aria-label="${dates.length === 1 ? 'Daily schedule' : 'Weekly schedule'}">${dates.map(date => {
+      const selected = date === ctx.date;
+      return `<article class="schedule-day${selected ? ' is-selected' : ''}">
+        <header class="schedule-date"><h3>${dates.length === 1 ? ctx.esc(fullDate(date)) : `<button data-action="select-date" data-date="${date}" type="button" aria-pressed="${selected}" ${date === ctx.today ? 'aria-current="date"' : ''}>${ctx.esc(format(date, {weekday: 'short'}))} <span>${dateObj(date).getDate()}</span></button>`}</h3>${dates.length === 1 ? workoutLink(date) : ''}</header>
+        <div class="schedule-entries">${dayEntries(ctx, date)}</div>
+      </article>`;
+    }).join('')}</div>`;
   }
-  function week(ctx) {
-    const start = shift(ctx.date, -dateObj(ctx.date).getDay());
-    return `<div class="cal-week-view">${Array.from({length:7}, (_, i) => { const date = shift(start, i), day = record(ctx.state, date), tasks = tasksFor(ctx.state, date); return `<div class="cal-week-column ${date === ctx.date ? 'is-current' : ''}"><div class="cal-week-heading"><span>${weekdays[i]}</span>${dateButton(ctx, date)}</div><div class="cal-week-items">${tasks.map(t => `<div class="cal-week-item task">${ctx.esc(t.title)}</div>`).join('')}${hasWorkout(day) ? `<div class="cal-week-item workout">${ctx.esc(day.workout.title || 'Workout')}</div>` : ''}${day.cardio ? '<div class="cal-week-item workout">Cardio</div>' : ''}${mealsFor(day).length ? `<div class="cal-week-item meal">${mealsFor(day).length} meals</div>` : ''}</div></div>`; }).join('')}</div>`;
+
+  function workoutLink(date) {
+    return `<button class="btn workout-link" type="button" data-action="open-workout" data-date="${date}">Edit workout</button>`;
   }
-  function dayView(ctx) {
-    const day = record(ctx.state, ctx.date), tasks = tasksFor(ctx.state, ctx.date);
-    return `<div class="cal-day-view"><p class="cal-eyebrow">A LITTLE SPACE FOR YOURSELF</p><h3>${ctx.esc(fmt(ctx.date, {weekday:'long'}))}</h3><p>${ctx.esc(fmt(ctx.date, {month:'long', day:'numeric', year:'numeric'}))}</p><div class="cal-day-stats"><div><strong>${tasks.length}</strong><span>tasks planned</span></div><div><strong>${hasWorkout(day) || day.cardio ? '1' : '0'}</strong><span>movement plans</span></div><div><strong>${mealsFor(day).length}</strong><span>meals logged</span></div></div><p class="cal-day-note">Make room for what matters today.</p></div>`;
+
+  function allTasks(ctx) {
+    const tasks = [...ctx.state.tasks].sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
+    const open = tasks.filter(task => !task.done);
+    const done = tasks.filter(task => task.done);
+    const list = items => `<ul class="planner-entries">${items.map(task => taskRow(ctx, task)).join('')}</ul>`;
+    return `${open.length ? list(open) : '<p class="planner-empty">No open tasks.</p>'}${done.length ? `<details class="planner-completed"><summary>Completed (${done.length})</summary>${list(done)}</details>` : ''}`;
   }
-  function year(ctx) {
-    const y = dateObj(ctx.date).getFullYear();
-    return `<div class="cal-year-grid">${Array.from({length:12}, (_, i) => { const date = `${y}-${String(i + 1).padStart(2,'0')}-01`; return `<section class="cal-mini-month"><h3>${fmt(date, {month:'long'})}</h3>${monthGrid(ctx, date, true)}</section>`; }).join('')}</div>`;
+
+  function sidebar(ctx) {
+    const all = ctx.view === 'day' || ctx.agenda === 'all';
+    return `<aside class="panel planner-aside" aria-label="${all ? 'All tasks' : 'Selected day'}">
+      ${ctx.view === 'day' ? '<h2>All tasks</h2>' : `<div class="segmented agenda-tabs" aria-label="Planner list"><button type="button" data-action="agenda-view" data-view="day" aria-pressed="${!all}">Selected day</button><button type="button" data-action="agenda-view" data-view="all" aria-pressed="${all}">All tasks</button></div>`}
+      ${all ? allTasks(ctx) : `<div class="agenda-heading"><h3>${ctx.esc(fullDate(ctx.date))}</h3>${workoutLink(ctx.date)}</div>${dayEntries(ctx, ctx.date)}`}
+    </aside>`;
   }
-  window.DaymarkViews = window.DaymarkViews || {};
-  window.DaymarkViews.calendar = function (ctx) {
-    const {date, view, esc} = ctx;
-    const title = view === 'year' ? fmt(date,{year:'numeric'}) : view === 'day' ? fmt(date,{month:'long',day:'numeric',year:'numeric'}) : view === 'week' ? `${fmt(shift(date,-dateObj(date).getDay()),{month:'short',day:'numeric'})} – ${fmt(shift(date,6-dateObj(date).getDay()),{month:'short',day:'numeric',year:'numeric'})}` : fmt(date,{month:'long',year:'numeric'});
-    return `<section class="cal-dashboard"><div class="cal-main"><div class="cal-toolbar"><div><p class="cal-eyebrow">YOUR TIME, AT A GLANCE</p><h2>${esc(title)}</h2></div><div class="cal-nav"><button type="button" data-action="calendar-today">Today</button><button type="button" data-action="calendar-prev" aria-label="Previous ${esc(view)}">‹</button><button type="button" data-action="calendar-next" aria-label="Next ${esc(view)}">›</button></div></div><div class="cal-subbar"><div class="cal-segments" aria-label="Calendar view">${['day','week','month','year'].map(v => `<button type="button" data-action="calendar-view" data-view="${v}" aria-pressed="${view === v}" class="${view === v ? 'is-active' : ''}">${v[0].toUpperCase()+v.slice(1)}</button>`).join('')}</div><div class="cal-legend"><span><i class="cal-dot task"></i> Tasks</span><span><i class="cal-dot workout"></i> Movement</span><span><i class="cal-dot meal"></i> Meals</span></div></div>${view === 'year' ? year(ctx) : view === 'week' ? week(ctx) : view === 'day' ? dayView(ctx) : monthGrid(ctx,date)}</div>${agenda(ctx)}</section>`;
+
+  function yearGrid(ctx) {
+    const year = dateObj(ctx.date).getFullYear();
+    return `<div class="year-grid">${Array.from({length: 12}, (_, i) => {
+      const date = `${year}-${String(i + 1).padStart(2, '0')}-01`;
+      return `<section class="year-month"><h3>${format(date, {month: 'long'})}</h3>${monthGrid(ctx, date, true)}</section>`;
+    }).join('')}</div>`;
+  }
+
+  window.DaymarkViews ||= {};
+  window.DaymarkViews.calendar = function (context) {
+    const ctx = {...context, tasksByDate: indexTasks(context.state.tasks)};
+    const {date, view, esc, addDays} = ctx;
+    const weekStart = addDays(date, -dateObj(date).getDay());
+    const dates = Array.from({length: 7}, (_, i) => addDays(weekStart, i));
+    const title = {
+      day: shortDate(date), week: `${shortDate(weekStart)} – ${shortDate(dates[6])}`,
+      month: format(date, {month: 'long', year: 'numeric'}), year: format(date, {year: 'numeric'})
+    }[view];
+    const content = view === 'year' ? yearGrid(ctx) : view === 'month' ? monthGrid(ctx, date) : schedule(ctx, view === 'week' ? dates : [date]);
+    return `<section class="planner-grid ${view === 'week' ? 'wide-calendar' : ''}">
+      <div class="panel planner-calendar">
+        <div class="calendar-toolbar"><h2>${esc(title)}</h2><div class="calendar-controls" aria-label="Change dates">
+          <button type="button" class="btn" data-action="calendar-today">Today</button>
+          <button type="button" class="btn" data-action="calendar-prev" aria-label="Previous ${view}">‹</button>
+          <button type="button" class="btn" data-action="calendar-next" aria-label="Next ${view}">›</button>
+        </div></div>
+        <div class="calendar-views"><div class="segmented" aria-label="Calendar view">${['day', 'week', 'month', 'year'].map(option => `<button type="button" data-action="calendar-view" data-view="${option}" aria-pressed="${view === option}">${option[0].toUpperCase() + option.slice(1)}</button>`).join('')}</div>${view === 'month' || view === 'year' ? '<div class="calendar-key"><span><i class="marker task-marker"></i>Tasks</span><span><i class="marker workout-marker"></i>Workout</span></div>' : ''}</div>
+        ${content}
+      </div>${sidebar(ctx)}
+    </section>`;
   };
 })();

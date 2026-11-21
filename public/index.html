@@ -4,15 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#193a30">
-  <meta name="description" content="A personal calendar for training, meals and everyday tasks.">
+  <meta name="description" content="A personal planner for tasks and exercise.">
   <title>Daymark — Personal Planner</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="calendar.css">
   <link rel="stylesheet" href="training.css">
-  <link rel="stylesheet" href="lists.css">
   <script defer src="calendar.js"></script>
   <script defer src="training.js"></script>
-  <script defer src="lists.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
@@ -27,6 +25,7 @@
   </main>
   <nav id="mobile-nav" class="mobile-nav" aria-label="Main navigation"></nav>
   <dialog id="devices" class="device-dialog" aria-labelledby="device-title"></dialog>
+  <dialog id="task-editor" class="device-dialog" aria-labelledby="task-editor-title"></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
   <noscript>Daymark needs JavaScript to display and save your planner.</noscript>
 </body>
