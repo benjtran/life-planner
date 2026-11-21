@@ -1,12 +1,18 @@
 # Daymark
 
-Daymark is a personal planner for tasks and exercise. Use the Planner to manage deadlines and check off tasks and exercises from the daily, weekly, monthly, and yearly calendar. Use Training to plan workouts, log sets and cardio, and view your progress. Undo and redo work across both sections. The prototype starts with editable sample data.
+Daymark organizes tasks and exercise. Calendar shows what is scheduled each day, and Tasks lists all deadlines in date order. Under Training, create workout days, assign weekdays, log dated sets, and view exercise progress. The Running tab counts distinct high- and low-intensity days in each Monday–Sunday week. Saved changes support undo and redo.
 
 ## Run on your computer
 
 With Node.js 22 or newer, run `npm start` from this repository and open <http://127.0.0.1:4173/>. The app has no package dependencies.
 
 ## Open on an iPhone
+
+The hosted build is designed for a private HTTPS deployment with sign-in. It gives each signed-in account a separate planner and starts empty. It does not import the local planner. Build the Sites Worker with `npm run build:hosted`. An owner-private Sites project, a `DB` D1 binding, and the migration in `drizzle/` are required for deployment.
+
+From the hosted address in Safari, select **Share → Add to Home Screen** and turn on **Open as Web App**. Sign in with the same account on both devices.
+
+### Local Wi-Fi preview
 
 1. Run `npm run start:lan` on your computer while both devices are on the same trusted Wi-Fi.
 2. Open the computer URL and select **Devices** to see the phone URL and pairing code.

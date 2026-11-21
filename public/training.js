@@ -8,7 +8,7 @@
   const workoutView = function (ctx) {
     const {state, date, today, esc, pretty} = ctx;
     const day = (state.days || {})[date] || {};
-    const workout = day.workout || {};
+    const workout = ctx.workoutFor(date) || {};
     const exercises = Array.isArray(workout.exercises) ? workout.exercises : [];
     const exerciseCard = (exercise, index) => {
       const id = esc(value(exercise.id));
@@ -21,9 +21,35 @@
     };
     return `<div class="training-intro"><div class="training-date"><label for="training-date">Session date</label><input id="training-date" type="date" data-change="date" value="${esc(date)}" aria-label="Session date"><span>${esc(pretty(date))}${date === today ? ' · Today' : ''}</span></div></div>
       <div class="training-layout"><div class="training-main"><div class="section-heading"><h2>Workout</h2><span class="exercise-count">${exercises.length} ${exercises.length === 1 ? 'EXERCISE' : 'EXERCISES'}</span></div>
-      <form class="panel workout-details" data-form="workout-title"><label>Workout name<input name="title" value="${esc(value(workout.title))}" placeholder="e.g. Upper body strength"></label><label>Cardio notes<input name="cardio" value="${esc(value(day.cardio))}" placeholder="e.g. Easy walk, 20 min"></label><button class="btn" type="submit">Save details</button></form>
+      <form class="panel workout-details" data-form="workout-title"><label>Workout name<input name="title" value="${esc(value(workout.title))}" placeholder="e.g. Upper body strength"></label><label>Other activity notes<input name="cardio" value="${esc(value(day.cardio))}" placeholder="Running is tracked in the Running tab"></label><button class="btn" type="submit">Save details</button></form>
       <div class="exercise-list">${exercises.length ? exercises.map(exerciseCard).join('') : '<div class="training-empty"><h3>No exercises yet</h3><p>Add an exercise to this workout.</p></div>'}</div></div>
       <aside class="training-aside"><div class="panel add-exercise"><h2>Add an exercise</h2><form data-form="add-exercise"><label>Exercise name<input name="name" required placeholder="e.g. Goblet squat"></label><label>Type<select name="kind"><option value="strength">Strength</option><option value="cardio">Cardio</option></select></label><button class="btn primary" type="submit">+ Add exercise</button></form></div></aside></div>`;
+  };
+
+  const templatesView = function (ctx) {
+    const {state, esc} = ctx;
+    const templates = state.templates || [];
+    const selected = templates.find(t => t.id === ctx.templateId);
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weekdays = selected && Array.isArray(selected.weekdays) ? selected.weekdays : [];
+    return `<div class="template-layout"><div><div class="section-heading"><h2>Workout days</h2><span class="exercise-count">${templates.length} SAVED</span></div><div class="template-list">${templates.length ? templates.map(t => `<button type="button" class="template-item" data-action="select-template" data-id="${esc(value(t.id))}" aria-pressed="${t === selected}"><strong>${esc(value(t.title))}</strong><span>${(t.weekdays || []).map(d => days[d]).filter(Boolean).join(' · ') || 'No days assigned'} · ${(t.exercises || []).length} exercises</span></button>`).join('') : '<div class="training-empty"><h3>No workout days yet</h3><p>Create one to reuse throughout the week.</p></div>'}</div><button type="button" class="text-action new-template" data-action="select-template" data-id="">+ New workout day</button></div>
+      <div class="panel template-editor"><div class="section-heading"><h2>${selected ? 'Edit workout day' : 'New workout day'}</h2>${selected ? `<button type="button" class="text-action" data-action="delete-template" data-id="${esc(value(selected.id))}">Delete</button>` : ''}</div><form data-form="save-template"${selected ? ` data-id="${esc(value(selected.id))}"` : ''}><label>Name<input name="title" required value="${esc(value(selected && selected.title))}" placeholder="e.g. Back Day"></label><fieldset><legend>Repeat on</legend><div class="weekday-picker">${days.map((day, i) => `<label><input type="checkbox" name="weekday" value="${i}"${weekdays.includes(i) ? ' checked' : ''}><span>${day}</span></label>`).join('')}</div></fieldset><button class="btn primary" type="submit">${selected ? 'Save workout day' : 'Create workout day'}</button></form>${selected ? `<div class="template-exercises"><div class="section-heading"><h2>Exercises</h2><span class="exercise-count">${(selected.exercises || []).length} TOTAL</span></div>${(selected.exercises || []).map(ex => `<div class="template-exercise"><strong>${esc(value(ex.name))}</strong><button type="button" class="icon-action" data-action="delete-template-exercise" data-id="${esc(value(selected.id))}" data-exercise="${esc(value(ex.id))}" aria-label="Remove ${esc(value(ex.name))}">×</button></div>`).join('')}<form class="template-add" data-form="add-template-exercise" data-id="${esc(value(selected.id))}"><label>Exercise name<input name="name" required placeholder="e.g. Lat pulldown"></label><button class="btn" type="submit">+ Add</button></form></div>` : ''}</div></div>`;
+  };
+
+  const runningView = function (ctx) {
+    const {state, esc, pretty, addDays, runWeekStart} = ctx;
+    const goals = state.runGoals || {};
+    const end = addDays(runWeekStart, 6);
+    const runs = (state.runs || []).filter(r => r.date >= runWeekStart && r.date <= end).sort((a, b) => b.date.localeCompare(a.date));
+    const count = intensity => new Set(runs.filter(r => r.intensity === intensity).map(r => r.date)).size;
+    const label = intensity => intensity === 'high' ? 'High intensity' : 'Low intensity';
+    const logDate = ctx.date >= runWeekStart && ctx.date <= end && ctx.date <= ctx.today ? ctx.date : ctx.today;
+    return `<div class="running-view">
+      <div class="running-header"><h2>Running</h2><div class="week-controls"><button class="btn" type="button" data-action="run-week-prev" aria-label="Previous week">‹</button><strong>${esc(pretty(runWeekStart))} – ${esc(pretty(end))}</strong><button class="btn" type="button" data-action="run-week-next" aria-label="Next week">›</button><button class="text-action" type="button" data-action="run-week-today">This week</button></div></div>
+      <div class="run-summary">${['high', 'low'].map(intensity => `<div class="panel"><span>${label(intensity)}</span><strong>${count(intensity)} <small>/ ${esc(goals[intensity])} days</small></strong>${goals[`${intensity}Distance`] ? `<p>Target ${esc(goals[`${intensity}Distance`])}</p>` : ''}</div>`).join('')}</div>
+      <div class="running-layout"><div><div class="section-heading"><h2>Runs this week</h2><span class="exercise-count">${runs.length} logged</span></div>${runs.length ? `<div class="run-list">${runs.map(run => `<article class="panel run-row"><div><strong>${label(run.intensity)}</strong><span>${esc(pretty(run.date))} · ${esc(run.distance)} km${run.minutes != null ? ` · ${esc(run.minutes)} min` : ''}</span></div><button type="button" class="icon-action" data-action="delete-run" data-id="${esc(run.id)}" aria-label="Delete ${label(run.intensity).toLowerCase()} run on ${esc(pretty(run.date))}">×</button></article>`).join('')}</div>` : '<div class="training-empty"><h3>No runs logged this week</h3></div>'}</div>
+      <aside><div class="panel run-form"><h2>Log a run</h2><form data-form="log-run"><label>Date<input type="date" name="date" value="${esc(logDate)}" max="${esc(ctx.today)}" required></label><label>Intensity<select name="intensity"><option value="low">Low intensity</option><option value="high">High intensity</option></select></label><label>Distance (km)<input name="distance" type="number" min="0.01" step="any" required></label><label>Duration (min)<input type="number" min="0.01" step="any" name="minutes"></label><button class="btn primary" type="submit">Log run</button></form></div>
+      <div class="panel run-form"><h2>Weekly goals</h2><form data-form="save-run-goals"><div class="goal-fields"><label>High-intensity days<input type="number" min="0" max="7" name="high" value="${esc(goals.high)}" required></label><label>Low-intensity days<input type="number" min="0" max="7" name="low" value="${esc(goals.low)}" required></label></div><label>High-intensity distance target<input name="highDistance" value="${esc(goals.highDistance)}" maxlength="40"></label><label>Low-intensity distance target<input name="lowDistance" value="${esc(goals.lowDistance)}" maxlength="40"></label><button class="btn" type="submit">Save goals</button></form></div></aside></div></div>`;
   };
 
   const progressView = function (ctx) {
@@ -70,7 +96,8 @@
   };
 
   views.training = function (ctx) {
-    const active = ctx.trainingView === 'progress' ? 'progress' : 'workout';
-    return `<section class="training-view"><h1>Training</h1><nav class="training-tabs" aria-label="Training sections"><button type="button" data-action="training-view" data-view="workout" aria-pressed="${active === 'workout'}">Workout</button><button type="button" data-action="training-view" data-view="progress" aria-pressed="${active === 'progress'}">Progress</button></nav>${active === 'progress' ? progressView(ctx) : workoutView(ctx)}</section>`;
+    const active = ['templates', 'workout', 'running', 'progress'].includes(ctx.trainingView) ? ctx.trainingView : 'workout';
+    const labels = {templates: 'Workout days', workout: 'Log workout', running: 'Running', progress: 'Progress'};
+    return `<section class="training-view"><h1>Training</h1><nav class="training-tabs" aria-label="Training sections">${Object.entries(labels).map(([key, label]) => `<button type="button" data-action="training-view" data-view="${key}" aria-pressed="${active === key}">${label}</button>`).join('')}</nav>${active === 'templates' ? templatesView(ctx) : active === 'running' ? runningView(ctx) : active === 'progress' ? progressView(ctx) : workoutView(ctx)}</section>`;
   };
 })();

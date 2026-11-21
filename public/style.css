@@ -90,7 +90,7 @@ select { appearance: none; padding-right: 32px; background-image: url("data:imag
   .top-actions .btn { width: 36px; padding: 6px; min-height: 36px; }
   .main-inner { padding: 20px 12px calc(86px + env(safe-area-inset-bottom)); }
   .page-heading { margin-bottom: 15px; align-items: center; }
-  .mobile-nav { position: fixed; z-index: 3; inset: auto 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 5px 4px max(5px, env(safe-area-inset-bottom)); color: var(--sidebar-text); background: var(--sidebar); }
+  .mobile-nav { position: fixed; z-index: 3; inset: auto 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 5px 4px max(5px, env(safe-area-inset-bottom)); color: var(--sidebar-text); background: var(--sidebar); }
   .mobile-nav .nav-button { flex-direction: column; justify-content: center; align-items: center; gap: 4px; padding: 6px 1px; width: 100%; min-height: 49px; font-size: .75rem; }
   .mobile-nav .nav-button[aria-current="page"]::before { inset: 0 25% auto; width: auto; height: 2px; }
   .toast { bottom: calc(71px + env(safe-area-inset-bottom)); right: 12px; }

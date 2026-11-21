@@ -6,6 +6,7 @@
   "type": "module",
   "engines": { "node": ">=22" },
   "scripts": {
+    "build:hosted": "node hosting/build.mjs",
     "start": "node server.mjs",
     "start:lan": "node server.mjs --lan",
     "test": "node --test"
