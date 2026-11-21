@@ -18,7 +18,7 @@
   const today = dateKey(new Date());
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[char]));
   const id = () => globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  const {withDefaults, workoutFor, pinWorkout, emptyWorkout, blankSet, activitiesFor, runItemId, workoutItemId, applyWorkoutInputs} = window.DaymarkSchedule;
+  const {withDefaults, workoutFor, pinWorkout, emptyWorkout, blankSet, activitiesFor, workoutItemId, formatRunPace, splitRunPace, applyWorkoutInputs} = window.DaymarkSchedule;
   const blankDay = () => ({workout: emptyWorkout(), cardio: ''});
   const taskTone = (due) => !due ? 'none' : due === today ? 'today' : due === addDays(today, 1) ? 'tomorrow' : due < today ? 'overdue' : 'later';
   const mondayOf = (value) => addDays(value, -((parseDate(value).getDay() + 6) % 7));
@@ -67,8 +67,6 @@
   let trainingView = 'templates';
   let templateId = '';
   let runTypeId = '';
-  let runLogTypeId = '';
-  let runWeekStart = mondayOf(today);
   let toastTimer;
   let sync = {available: false, code: '', url: '', host: false, busy: false};
   let revision = saved?.revision ?? -1;
@@ -103,7 +101,7 @@
     $('heading').innerHTML = section === 'training' ? '' : `<div class="page-heading"><h1>${sections[section]}</h1>${section === 'tasks' ? `<button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button>` : ''}</div>`;
     const weekStart = mondayOf(date);
     const allItems = section === 'tasks' && taskScope === 'all' ? [...state.tasks.map(manualTask), ...Array.from({length: 7}, (_, offset) => activitiesFor(state, addDays(weekStart, offset))).flat()] : [];
-    const ctx = {state, date, today, view, esc, pretty, addDays, taskTone, taskFilter, taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, runLogTypeId, runWeekStart, progressExercise, workoutFor: value => workoutFor(state, value)};
+    const ctx = {state, date, today, view, esc, pretty, addDays, taskTone, taskFilter, taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, progressExercise, workoutFor: value => workoutFor(state, value)};
     $('view').innerHTML = window.DaymarkViews[section](ctx);
     const week = $('view').querySelector('.planner-schedule.is-week');
     if (week) {
@@ -247,7 +245,6 @@
     return dateKey(next);
   }
 
-  const numberOrBlank = (value) => value === '' ? null : Number(value);
   const workoutForms = () => [...$('view').querySelectorAll('[data-form="workout-title"], [data-form="save-set"], [data-form="save-cardio"]')];
   const formEdited = form => [...form.querySelectorAll('input')].some(input => input.value !== input.defaultValue || input.validity.badInput);
   const assignedWeekdays = data => [...new Set(data.getAll('weekday').map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6))];
@@ -279,14 +276,6 @@
       case 'navigate': return navigate(button.dataset.section);
       case 'new-task': return taskEditor();
       case 'open-workout': date = actionDate; trainingView = 'workout'; return navigate('training');
-      case 'open-running':
-        runWeekStart = mondayOf(actionDate);
-        date = actionDate;
-        runLogTypeId = actionDate <= today ? itemId || '' : '';
-        if (actionDate > today) runTypeId = itemId || '';
-        trainingView = 'running';
-        navigate('training');
-        return $('view').querySelector(actionDate <= today ? '[data-form="log-run"] select' : '[data-form="save-run-type"] input[name="title"]')?.focus();
       case 'training-view': trainingView = button.dataset.view; return render();
       case 'task-filter': taskFilter = button.dataset.filter; return render();
       case 'task-scope': taskScope = button.dataset.scope; return render();
@@ -299,11 +288,10 @@
         const template = next.templates.find(entry => entry.id === itemId);
         if (template) template.exercises = template.exercises.filter(entry => entry.id !== exercise);
       });
-      case 'run-week-prev': runWeekStart = addDays(runWeekStart, -7); return render();
-      case 'run-week-next': runWeekStart = addDays(runWeekStart, 7); return render();
-      case 'run-week-today': runWeekStart = mondayOf(today); return render();
-      case 'delete-run': return change('Run deleted.', (next) => { next.runs = next.runs.filter(run => run.id !== itemId); });
-      case 'select-run-type': runTypeId = itemId; return render();
+      case 'select-run-type':
+        runTypeId = itemId;
+        render();
+        return $('view').querySelector('[data-form="save-run-type"] input[name="title"]')?.focus();
       case 'delete-run-type': return change('Run type deleted.', (next) => { next.runTypes = next.runTypes.filter(run => run.id !== itemId); });
       case 'select-date':
         date = actionDate;
@@ -323,7 +311,7 @@
       }
       case 'delete-task': return change('Task deleted.', (next) => { next.tasks = next.tasks.filter((item) => item.id !== itemId); }).then((saved) => { if (saved) $('task-editor').close(); });
       case 'toggle-planned': {
-        const item = activitiesFor(state, actionDate).find(entry => entry.id === itemId && entry.kind !== 'run-log');
+        const item = activitiesFor(state, actionDate).find(entry => entry.id === itemId);
         if (item) return change(item.done ? 'Marked as to do.' : 'Marked complete.', (next) => { next.plannedCompletions[itemId] = !item.done; });
         return;
       }
@@ -358,11 +346,6 @@
   document.addEventListener('change', (event) => {
     const field = event.target;
     if (field.dataset.change === 'date' && validDate(field.value)) { date = field.value; render(); }
-    if (field.dataset.change === 'run-log-type') {
-      runLogTypeId = field.value;
-      const intensity = state.runTypes.find(type => type.id === field.value)?.intensity;
-      if (intensity) field.form.elements.namedItem('intensity').value = intensity;
-    }
     if (field.dataset.change === 'progress-exercise') { progressExercise = field.value; render(); $('view').querySelector('[data-change="progress-exercise"]')?.focus(); }
   });
 
@@ -413,31 +396,19 @@
         if (!name) return;
         return change('Exercise added to workout day.', (next) => next.templates.find(entry => entry.id === itemId)?.exercises.push({id: id(), name}));
       }
-      case 'log-run': {
-        const runDate = get('date');
-        const type = state.runTypes.find(entry => entry.id === get('runTypeId'));
-        const intensity = get('intensity');
-        const distance = Number(get('distance'));
-        const minutes = numberOrBlank(get('minutes'));
-        if (!validDate(runDate) || runDate > today || !['high', 'low'].includes(intensity) || !Number.isFinite(distance) || distance <= 0 || (minutes !== null && (!Number.isFinite(minutes) || minutes <= 0))) return;
-        const committed = await change('Run logged.', (next) => {
-          next.runs.push({id: id(), date: runDate, intensity, distance, minutes, ...(type ? {runTypeId: type.id, typeName: type.title} : {})});
-          if (type) delete next.plannedCompletions[runItemId(runDate, type.id)];
-        });
-        if (committed) { runWeekStart = mondayOf(runDate); render(); }
-        return;
-      }
       case 'save-run-type': {
         const title = get('title');
         const distance = Number(get('distance'));
-        const pace = get('pace');
+        const pace = formatRunPace(get('paceMinutes'), get('paceSeconds'));
         const intensity = get('intensity');
         const weekdays = assignedWeekdays(data);
         if (!title || !Number.isFinite(distance) || distance <= 0 || !['high', 'low'].includes(intensity)) return;
+        if (pace === null) { notify('Enter a pace greater than zero, with seconds between 0 and 59.'); return; }
         if (!weekdays.length) { notify('Select at least one day for this run.'); return; }
         const committed = await change(itemId ? 'Run type saved.' : 'Run scheduled.', (next) => {
           const type = next.runTypes.find(entry => entry.id === itemId);
           const details = {title, distance, pace, intensity, weekdays};
+          if (!pace && type?.pace && !splitRunPace(type.pace)) details.pace = type.pace;
           if (type) Object.assign(type, details);
           else next.runTypes.push({id: id(), startDate: today, ...details});
         });

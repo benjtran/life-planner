@@ -46,6 +46,21 @@
   const workoutItemId = date => `workout:${date}`;
   const runItemId = (date, typeId) => `run:${date}:${typeId}`;
 
+  function formatRunPace(minutes, seconds) {
+    if (!minutes && !seconds) return '';
+    if (!/^\d*$/.test(minutes) || !/^\d*$/.test(seconds)) return null;
+    const min = Number(minutes);
+    const sec = Number(seconds);
+    if (!Number.isSafeInteger(min) || sec > 59 || min + sec === 0) return null;
+    return `${min}:${String(sec).padStart(2, '0')}`;
+  }
+
+  function splitRunPace(pace) {
+    const parts = /^(\d+)(?::(\d{1,2}))?$/.exec(String(pace ?? '').trim());
+    const normalized = parts && formatRunPace(parts[1], parts[2] ?? '');
+    return normalized ? normalized.split(':') : null;
+  }
+
   function activitiesFor(state, date) {
     const items = [];
     const workout = workoutFor(state, date);
@@ -62,13 +77,14 @@
     for (const type of scheduled) {
       const id = runItemId(date, type.id);
       const linked = runs.some(run => run.runTypeId === type.id);
-      items.push({id, due: date, sourceId: type.id, kind: 'run', title: type.title, done: completions[id] ?? linked,
+      items.push({id, due: date, kind: 'run', title: type.title, done: completions[id] ?? linked,
         detail: [`${type.distance} km`, type.pace && `${type.pace} min/km`].filter(Boolean).join(' · ')});
     }
     for (const run of runs) {
       if (scheduled.some(type => type.id === run.runTypeId)) continue;
-      items.push({id: `run-log:${run.id}`, due: date, sourceId: run.runTypeId, kind: 'run-log',
-        title: run.typeName || `${run.intensity === 'high' ? 'High' : 'Low'}-intensity run`, done: true, detail: `${run.distance} km`});
+      const id = `run-log:${run.id}`;
+      items.push({id, due: date, kind: 'run',
+        title: run.typeName || `${run.intensity === 'high' ? 'High' : 'Low'}-intensity run`, done: completions[id] ?? true, detail: `${run.distance} km`});
     }
     return items;
   }
@@ -94,5 +110,5 @@
     return workout;
   }
 
-  window.DaymarkSchedule = {withDefaults, workoutFor, pinWorkout, emptyWorkout, blankSet, activitiesFor, workoutItemId, runItemId, applyWorkoutInputs};
+  window.DaymarkSchedule = {withDefaults, workoutFor, pinWorkout, emptyWorkout, blankSet, activitiesFor, workoutItemId, formatRunPace, splitRunPace, applyWorkoutInputs};
 })();

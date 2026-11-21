@@ -1,4 +1,10 @@
-.planner-calendar { min-width: 0; padding: clamp(14px, 2.1vw, 24px); }
+.planner-calendar {
+  --exercise-bg: #e8f1fb;
+  --exercise-border: #c8daee;
+  --exercise-text: #25466c;
+  min-width: 0;
+  padding: clamp(14px, 2.1vw, 24px);
+}
 .calendar-toolbar h2 { font-size: 1.35rem; letter-spacing: -.025em; }
 .calendar-toolbar, .calendar-views, .schedule-date {
   display: flex;
@@ -24,12 +30,6 @@
 }
 .segmented button[aria-pressed="true"] { background: var(--panel); border-color: var(--line); color: var(--ink); }
 .schedule-date h3 { font-size: 1.025rem; letter-spacing: -.015em; }
-.calendar-key { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; font-size: .8125rem; color: var(--muted); }
-.calendar-key > span { display: flex; align-items: center; gap: 5px; }
-.marker { display: inline-block; flex: none; width: 7px; height: 7px; border-radius: 50%; }
-.task-marker { background: #7452a8; }
-.workout-marker { background: var(--accent); border-radius: 1px; }
-.run-marker { background: #97610d; border-radius: 1px; transform: rotate(45deg) scale(.85); }
 .month-weekdays, .month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .month-weekdays span { font-size: .8125rem; color: var(--muted); font-weight: 650; text-align: center; padding: 8px 1px; }
 .month-grid { border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
@@ -54,7 +54,7 @@
 .month-number { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; font-size: .875rem; font-weight: 700; }
 .month-cell[aria-current="date"] .month-number { outline: 1px solid var(--accent); }
 .month-cell.is-selected .month-number { color: #fff; background: var(--accent); }
-.month-markers { display: none; align-items: center; flex-wrap: wrap; gap: 4px; min-height: 7px; margin-left: 5px; }
+.month-kinds { display: none; }
 
 .planner-schedule { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .planner-schedule.is-week { position: relative; grid-template-columns: repeat(7, minmax(148px, 1fr)); overflow-x: auto; }
@@ -67,17 +67,22 @@
 .schedule-entries { display: grid; align-content: start; gap: 8px; }
 .calendar-events { display: grid; align-content: start; gap: 6px; list-style: none; padding: 0; margin: 0; min-width: 0; }
 .calendar-event { min-width: 0; padding: 8px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--ink); font-size: .8125rem; line-height: 1.35; overflow-wrap: anywhere; }
+.calendar-event.is-exercise { border-color: var(--exercise-border); background: var(--exercise-bg); }
+.event-kind { display: block; margin-bottom: 3px; color: var(--muted); font-size: .75rem; font-weight: 700; }
+.event-kind.is-exercise { color: var(--exercise-text); }
 .event-title { display: block; font-weight: 650; }
-.event-meta { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; color: var(--muted); font-size: .75rem; }
+.event-meta { display: block; margin-top: 4px; color: var(--muted); font-size: .75rem; }
 .calendar-event.is-done .event-title { text-decoration: line-through; }
 .calendar-events.is-compact { width: 100%; gap: 3px; }
-.is-compact .calendar-event { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px; padding: 3px 5px; font-size: .75rem; }
-.is-compact .marker { margin-top: .38em; }
+.is-compact .calendar-event { padding: 4px 5px; font-size: .75rem; }
+.is-compact .event-kind { margin-bottom: 1px; }
 @media (max-width: 660px) {
   .calendar-views { margin: 12px 0 8px; }
   .month-cell { min-height: 52px; padding: 3px; }
   .month-number { width: 23px; height: 23px; }
   .calendar-toolbar h2 { font-size: 1.17rem; }
-  .month-markers { display: flex; }
+  .month-kinds { display: grid; gap: 2px; width: 100%; }
+  .month-kinds .event-kind { margin: 0; padding: 1px 0; border-radius: 3px; background: var(--canvas); text-align: center; font-size: .6875rem; }
+  .month-kinds .event-kind.is-exercise { background: var(--exercise-bg); }
   .month-cell .calendar-events { display: none; }
 }

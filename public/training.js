@@ -21,7 +21,7 @@
     };
     return `<div class="training-intro"><div class="training-date"><label for="training-date">Session date</label><input id="training-date" type="date" data-change="date" value="${esc(date)}" aria-label="Session date"><span>${esc(pretty(date))}${date === today ? ' · Today' : ''}</span></div></div>
       <div class="training-layout"><div class="training-main"><div class="section-heading"><h2>Workout</h2><span class="exercise-count">${exercises.length} ${exercises.length === 1 ? 'EXERCISE' : 'EXERCISES'}</span></div>
-      <form class="panel workout-details" data-form="workout-title"><label>Workout name<input name="title" value="${esc(value(workout.title))}" placeholder="e.g. Upper body strength"></label><label>Other activity notes<input name="cardio" value="${esc(value(day.cardio))}" placeholder="Running is tracked in the Running tab"></label><button class="btn" type="submit">Save details</button></form>
+      <form class="panel workout-details" data-form="workout-title"><label>Workout name<input name="title" value="${esc(value(workout.title))}" placeholder="e.g. Upper body strength"></label><label>Other activity notes<input name="cardio" value="${esc(value(day.cardio))}" placeholder="e.g. Bike warm-up"></label><button class="btn" type="submit">Save details</button></form>
       <div class="exercise-list">${exercises.length ? exercises.map(exerciseCard).join('') : '<div class="training-empty"><h3>No exercises yet</h3><p>Add an exercise to this workout.</p></div>'}</div><button class="btn primary finish-workout" type="button" data-action="finish-workout">Save workout</button></div>
       <aside class="training-aside"><div class="panel add-exercise"><h2>Add an exercise</h2><form data-form="add-exercise"><label>Exercise name<input name="name" required placeholder="e.g. Goblet squat"></label><label>Type<select name="kind"><option value="strength">Strength</option><option value="cardio">Cardio</option></select></label><button class="btn primary" type="submit">+ Add exercise</button></form></div></aside></div>`;
   };
@@ -37,25 +37,46 @@
   };
 
   const runningView = function (ctx) {
-    const {state, esc, pretty, addDays, runWeekStart} = ctx;
-    const end = addDays(runWeekStart, 6);
-    const runs = (state.runs || []).filter(r => r.date >= runWeekStart && r.date <= end).sort((a, b) => b.date.localeCompare(a.date));
-    const count = intensity => new Set(runs.filter(r => r.intensity === intensity).map(r => r.date)).size;
-    const label = intensity => intensity === 'high' ? 'High intensity' : 'Low intensity';
-    const logDate = ctx.date;
+    const {state, esc} = ctx;
+    const {splitRunPace} = window.DaymarkSchedule;
     const types = state.runTypes || [];
     const selected = types.find(type => type.id === ctx.runTypeId);
-    const logType = types.find(type => type.id === ctx.runLogTypeId);
-    const plannedDays = intensity => Array.from({length: 7}, (_, i) => addDays(runWeekStart, i)).filter(date => types.some(type => type.intensity === intensity && date >= type.startDate && type.weekdays.includes(new Date(`${date}T12:00:00`).getDay()))).length;
+    const pace = splitRunPace(selected?.pace);
+    const [minutes, seconds] = pace || ['', ''];
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const weekdays = selected && Array.isArray(selected.weekdays) ? selected.weekdays : [];
-    return `<div class="running-view">
-      <div class="running-header"><h2>Running</h2><div class="week-controls"><button class="btn" type="button" data-action="run-week-prev" aria-label="Previous week">‹</button><strong>${esc(pretty(runWeekStart))} – ${esc(pretty(end))}</strong><button class="btn" type="button" data-action="run-week-next" aria-label="Next week">›</button><button class="text-action" type="button" data-action="run-week-today">This week</button></div></div>
-      <div class="run-summary">${['high', 'low'].map(intensity => `<div class="panel"><span>${label(intensity)}</span><strong>${count(intensity)} <small>days logged</small></strong><p>${plannedDays(intensity)} scheduled</p></div>`).join('')}</div>
-      <div class="run-types"><div><div class="section-heading"><h2>Run types</h2><span class="exercise-count">${types.length} SAVED</span></div><div class="template-list">${types.length ? types.map(type => `<button type="button" class="template-item" data-action="select-run-type" data-id="${esc(value(type.id))}" aria-pressed="${type === selected}"><strong>${esc(value(type.title))}</strong><span>${(type.weekdays || []).map(d => days[d]).filter(Boolean).join(' · ') || 'No days assigned'} · ${esc(value(type.distance))} km · ${esc(value(type.pace))} min/km · ${label(type.intensity)}</span></button>`).join('') : '<div class="training-empty"><h3>No run types yet</h3><p>Create a run type to schedule it each week.</p></div>'}</div><button type="button" class="text-action new-template" data-action="select-run-type" data-id="">+ New run type</button></div>
-      <div class="panel template-editor"><div class="section-heading"><h2>${selected ? 'Edit run type' : 'Create a run type'}</h2>${selected ? `<button type="button" class="text-action" data-action="delete-run-type" data-id="${esc(value(selected.id))}">Delete</button>` : ''}</div><form data-form="save-run-type"${selected ? ` data-id="${esc(value(selected.id))}"` : ''}><label>Name<input name="title" required value="${esc(value(selected && selected.title))}" placeholder="e.g. Easy run"></label><div class="goal-fields"><label>Distance (km)<input name="distance" type="number" min="0.01" step="any" required value="${esc(value(selected && selected.distance))}"></label><label>Pace (min/km)<input name="pace" required value="${esc(value(selected && selected.pace))}" placeholder="e.g. 6:00"></label></div><label>Intensity<select name="intensity"><option value="low"${!selected || selected.intensity === 'low' ? ' selected' : ''}>Low intensity</option><option value="high"${selected && selected.intensity === 'high' ? ' selected' : ''}>High intensity</option></select></label><fieldset><legend>Repeat on</legend><div class="weekday-picker">${days.map((day, i) => `<label><input type="checkbox" name="weekday" value="${i}"${weekdays.includes(i) ? ' checked' : ''}><span>${day}</span></label>`).join('')}</div></fieldset><button class="btn primary" type="submit">${selected ? 'Save run type' : 'Create run type'}</button></form></div></div>
-      <div class="running-layout"><div><div class="section-heading"><h2>Runs this week</h2><span class="exercise-count">${runs.length} logged</span></div>${runs.length ? `<div class="run-list">${runs.map(run => `<article class="panel run-row"><div><strong>${label(run.intensity)}</strong><span>${esc(pretty(run.date))} · ${esc(run.distance)} km${run.minutes != null ? ` · ${esc(run.minutes)} min` : ''}</span></div><button type="button" class="icon-action" data-action="delete-run" data-id="${esc(run.id)}" aria-label="Delete ${label(run.intensity).toLowerCase()} run on ${esc(pretty(run.date))}">×</button></article>`).join('')}</div>` : '<div class="training-empty"><h3>No runs logged this week</h3></div>'}</div>
-      <aside><div class="panel run-form"><h2>Log a run</h2><form data-form="log-run"><label>Run type<select name="runTypeId" data-change="run-log-type"><option value="">Unscheduled</option>${types.map(type => `<option value="${esc(value(type.id))}"${type === logType ? ' selected' : ''}>${esc(value(type.title))}</option>`).join('')}</select></label><label>Date<input type="date" name="date" value="${esc(logDate)}" max="${esc(ctx.today)}" required></label><label>Intensity<select name="intensity"><option value="low">Low intensity</option><option value="high"${logType?.intensity === 'high' ? ' selected' : ''}>High intensity</option></select></label><label>Actual distance (km)<input name="distance" type="number" min="0.01" step="any" required></label><label>Duration (min)<input type="number" min="0.01" step="any" name="minutes"></label><button class="btn primary" type="submit">Log run</button></form></div></aside></div></div>`;
+    const weekdays = selected?.weekdays || [];
+    const label = intensity => intensity === 'high' ? 'High intensity' : 'Low intensity';
+    const runSummary = type => [
+      (type.weekdays || []).map(day => days[day]).filter(Boolean).join(' · ') || 'No days assigned',
+      `${type.distance} km`,
+      type.pace && `${type.pace} min/km`,
+      label(type.intensity)
+    ].filter(Boolean).join(' · ');
+    return `<div class="template-layout">
+      <div>
+        <div class="section-heading"><h2>Run types</h2></div>
+        <div class="template-list">${types.length ? types.map(type => `<button type="button" class="template-item" data-action="select-run-type" data-id="${esc(type.id)}" aria-pressed="${type === selected}"><strong>${esc(type.title)}</strong><span>${esc(runSummary(type))}</span></button>`).join('') : '<div class="training-empty"><h3>No run types yet</h3><p>Create a run type to schedule it each week.</p></div>'}</div>
+        ${selected ? '<button type="button" class="text-action new-template" data-action="select-run-type" data-id="">+ New run type</button>' : ''}
+      </div>
+      <div class="panel template-editor">
+        <div class="section-heading"><h2>${selected ? 'Edit run type' : 'Create a run type'}</h2>${selected ? `<button type="button" class="text-action" data-action="delete-run-type" data-id="${esc(selected.id)}">Delete</button>` : ''}</div>
+        <form data-form="save-run-type"${selected ? ` data-id="${esc(selected.id)}"` : ''}>
+          <label>Name<input name="title" required value="${esc(selected?.title)}" placeholder="e.g. Easy run"></label>
+          <label>Distance (km)<input name="distance" type="number" inputmode="decimal" min="0.01" step="any" required value="${esc(selected?.distance)}"></label>
+          <fieldset class="run-pace">
+            <legend>Pace goal (min/km, optional)</legend>
+            ${selected?.pace && !pace ? `<p class="run-pace-current">Saved pace goal · ${esc(selected.pace)} min/km</p>` : ''}
+            <div class="run-pace-fields">
+              <label>Minutes<input name="paceMinutes" type="number" min="0" step="1" inputmode="numeric" value="${esc(minutes)}" placeholder="0"></label>
+              <label>Seconds<input name="paceSeconds" type="number" min="0" max="59" step="1" inputmode="numeric" value="${esc(seconds)}" placeholder="00"></label>
+            </div>
+          </fieldset>
+          <label>Intensity<select name="intensity"><option value="low">Low intensity</option><option value="high"${selected?.intensity === 'high' ? ' selected' : ''}>High intensity</option></select></label>
+          <fieldset><legend>Repeat on</legend><div class="weekday-picker">${days.map((day, i) => `<label><input type="checkbox" name="weekday" value="${i}"${weekdays.includes(i) ? ' checked' : ''}><span>${day}</span></label>`).join('')}</div></fieldset>
+          <button class="btn primary" type="submit">${selected ? 'Save run type' : 'Create run type'}</button>
+        </form>
+      </div>
+    </div>`;
   };
 
   const progressView = function (ctx) {

@@ -5,7 +5,7 @@ import {runInNewContext} from 'node:vm';
 
 const window = {};
 runInNewContext(readFileSync(new URL('../public/schedule.js', import.meta.url), 'utf8'), {window});
-const {withDefaults, workoutFor, pinWorkout, blankSet, activitiesFor, applyWorkoutInputs} = window.DaymarkSchedule;
+const {withDefaults, workoutFor, pinWorkout, blankSet, activitiesFor, applyWorkoutInputs, formatRunPace, splitRunPace} = window.DaymarkSchedule;
 
 function planner() {
   return withDefaults({days: {}, tasks: [], templates: [{
@@ -67,4 +67,30 @@ test('activities show a single workout and put scheduled runs on their weekday o
   assert.equal(activitiesFor(state, '2026-11-23').length, 2);
   assert.equal(activitiesFor(state, '2026-11-23')[1].done, true);
   assert.equal(activitiesFor(state, '2026-11-30')[1].done, false);
+});
+
+test('old run logs stay visible as completed runs and accept checklist changes', () => {
+  const state = planner();
+  const date = '2026-11-23';
+  state.runs.push({id: 'old', date, distance: 5, intensity: 'low'});
+  const run = activitiesFor(state, date).find(item => item.kind === 'run');
+  assert.equal(run.title, 'Low-intensity run');
+  assert.equal(run.done, true);
+  state.plannedCompletions[run.id] = false;
+  assert.equal(activitiesFor(state, date).find(item => item.id === run.id).done, false);
+  assert.equal(state.runs.length, 1);
+});
+
+test('whole-minute and minute-second pace goals round-trip through numeric fields', () => {
+  assert.equal(formatRunPace('6', '5'), '6:05');
+  assert.equal(formatRunPace('6', ''), '6:00');
+  assert.equal(formatRunPace('', '45'), '0:45');
+  assert.equal(formatRunPace('', ''), '');
+  assert.equal(formatRunPace('6', '60'), null);
+  assert.equal(formatRunPace('6.5', '0'), null);
+  assert.equal(formatRunPace('0', '0'), null);
+  for (const [saved, normalized] of [['6', '6:00'], ['6:5', '6:05'], ['6:30', '6:30']]) {
+    assert.equal(formatRunPace(...splitRunPace(saved)), normalized);
+  }
+  assert.equal(splitRunPace('6:30–7:00'), null);
 });

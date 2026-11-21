@@ -5,7 +5,7 @@
   const sections = [
     {id: 'tasks', title: 'Tasks', kinds: ['task']},
     {id: 'lifts', title: 'Lifts', kinds: ['workout']},
-    {id: 'runs', title: 'Runs', kinds: ['run', 'run-log']},
+    {id: 'runs', title: 'Runs', kinds: ['run']},
   ];
   const labels = {overdue: 'Overdue', today: 'Today', tomorrow: 'Tomorrow', later: 'Upcoming'};
   const symbols = {
@@ -41,11 +41,10 @@
     const filters = [['open', 'To do', openCount], ['all', 'All', items.length], ['done', 'Completed', items.length - openCount]];
     const itemRow = item => {
       if (item.kind === 'task') return views.taskRow(ctx, item);
-      const completed = item.kind === 'run-log' || item.done;
-      const openAction = item.kind === 'workout' ? 'open-workout' : 'open-running';
-      const attrs = `data-date="${esc(item.due)}"${item.sourceId ? ` data-id="${esc(item.sourceId)}"` : ''}`;
-      const toggle = item.kind === 'run-log' ? `<span class="task-check" aria-hidden="true">✓</span>` : `<button class="task-check" type="button" data-action="toggle-planned" data-id="${esc(item.id)}" data-date="${esc(item.due)}" aria-label="${completed ? 'Restore' : 'Complete'} ${esc(item.title)}" aria-pressed="${completed}"><span aria-hidden="true">${completed ? '✓' : ''}</span></button>`;
-      return `<li class="task-list-row${completed ? ' is-done' : ''}"><div class="task-date"><span class="task-due-date">${esc(item.due ? pretty(item.due) : 'No date')}</span>${completed ? '<small class="task-status">Completed</small>' : ''}</div><div class="task-content">${toggle}<span class="task-title"><span class="task-name">${esc(item.title)}</span>${item.detail ? `<small class="planned-detail">${esc(item.detail)}</small>` : ''}</span><button class="task-edit" type="button" data-action="${openAction}" ${attrs} aria-label="Open ${esc(item.title)}">›</button></div></li>`;
+      const completed = item.done;
+      const toggle = `<button class="task-check" type="button" data-action="toggle-planned" data-id="${esc(item.id)}" data-date="${esc(item.due)}" aria-label="${completed ? 'Restore' : 'Complete'} ${esc(item.title)}" aria-pressed="${completed}"><span aria-hidden="true">${completed ? '✓' : ''}</span></button>`;
+      const open = item.kind === 'workout' ? `<button class="task-edit" type="button" data-action="open-workout" data-date="${esc(item.due)}" aria-label="Open ${esc(item.title)}">›</button>` : '';
+      return `<li class="task-list-row${completed ? ' is-done' : ''}"><div class="task-date"><span class="task-due-date">${esc(item.due ? pretty(item.due) : 'No date')}</span>${completed ? '<small class="task-status">Completed</small>' : ''}</div><div class="task-content">${toggle}<span class="task-title"><span class="task-name">${esc(item.title)}</span>${item.detail ? `<small class="planned-detail">${esc(item.detail)}</small>` : ''}</span>${open}</div></li>`;
     };
     const groups = sections.map(({id, title, kinds}) => {
       const entries = visible.filter(item => kinds.includes(item.kind));

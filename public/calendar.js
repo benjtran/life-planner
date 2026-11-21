@@ -7,26 +7,40 @@
   const dateKey = date => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
   const shortDate = date => format(date, {month: 'short', day: 'numeric'});
   const fullDate = date => format(date, {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'});
-  const typeName = kind => ({task: 'Task', workout: 'Workout', run: 'Run', 'run-log': 'Run'})[kind] || 'Event';
-  const typeClass = kind => kind === 'run-log' ? 'run' : kind;
-  const marker = kind => `<span class="marker ${typeClass(kind)}-marker" aria-hidden="true"></span>`;
+  const typeNames = {task: 'Task', workout: 'Lift', run: 'Run'};
+  const typeName = kind => typeNames[kind] || 'Event';
+  const exerciseClass = kind => kind === 'task' ? '' : ' is-exercise';
+  const typeLabel = kind => `<span class="event-kind${exerciseClass(kind)}">${typeName(kind)}</span>`;
   const weekdayOffset = date => (date.getDay() + 6) % 7;
+
+  function monthPreviews(items) {
+    if (items.length <= 3) return items;
+    const firstByKind = [...new Set(items.map(item => item.kind))].map(kind => items.find(item => item.kind === kind));
+    return [...firstByKind, ...items.filter(item => !firstByKind.includes(item))].slice(0, 3);
+  }
 
   function eventList(ctx, items, compact = false) {
     if (!items.length) return '';
-    if (compact) return `<span class="calendar-events is-compact" aria-hidden="true">${items.slice(0, 3).map(item => `<span class="calendar-event${item.done ? ' is-done' : ''}"><span class="event-title">${ctx.esc(item.title)}</span>${marker(item.kind)}</span>`).join('')}${items.length > 3 ? `<span class="event-meta">+${items.length - 3} more</span>` : ''}</span>`;
-    return `<ul class="calendar-events">${items.map(item => `<li class="calendar-event${item.done ? ' is-done' : ''}">
-      <span class="event-title">${ctx.esc(item.title)}</span><span class="event-meta">${marker(item.kind)}<span>${typeName(item.kind)}${item.done ? ' · Done' : ''}${item.detail ? ` · ${ctx.esc(item.detail)}` : ''}</span></span>
-    </li>`).join('')}</ul>`;
+    const element = compact ? 'span' : 'li';
+    const events = (compact ? monthPreviews(items) : items).map(item => {
+      const status = [item.done && 'Done', item.detail].filter(Boolean).join(' · ');
+      return `<${element} class="calendar-event${exerciseClass(item.kind)}${item.done ? ' is-done' : ''}">
+        ${typeLabel(item.kind)}
+        <span class="event-title">${ctx.esc(item.title)}</span>
+        ${!compact && status ? `<span class="event-meta">${ctx.esc(status)}</span>` : ''}
+      </${element}>`;
+    }).join('');
+    if (compact) return `<span class="calendar-events is-compact" aria-hidden="true">${events}${items.length > 3 ? `<span class="event-meta">+${items.length - 3} more</span>` : ''}</span>`;
+    return `<ul class="calendar-events" role="list">${events}</ul>`;
   }
 
   function monthCell(ctx, date, outside) {
     const items = ctx.itemsFor(date);
     const selected = date === ctx.date;
     const description = items.length ? items.map(item => `${typeName(item.kind)}: ${item.title}${item.done ? ', done' : ''}`).join('; ') : 'nothing scheduled';
-    const kinds = [...new Set(items.map(item => typeClass(item.kind)))];
+    const kinds = [...new Set(items.map(item => item.kind))];
     return `<button type="button" class="month-cell${outside ? ' is-outside' : ''}${selected ? ' is-selected' : ''}" data-action="select-date" data-date="${date}" aria-label="${ctx.esc(`${fullDate(date)}: ${description}`)}" ${date === ctx.today ? 'aria-current="date"' : ''}>
-      <span class="month-number">${dateObj(date).getDate()}</span><span class="month-markers" aria-hidden="true">${kinds.map(marker).join('')}</span>${eventList(ctx, items, true)}
+      <span class="month-number">${dateObj(date).getDate()}</span>${kinds.length ? `<span class="month-kinds" aria-hidden="true">${kinds.map(typeLabel).join('')}</span>` : ''}${eventList(ctx, items, true)}
     </button>`;
   }
 
@@ -63,7 +77,7 @@
         <button type="button" class="btn" data-action="calendar-prev" aria-label="Previous ${view}">‹</button>
         <button type="button" class="btn" data-action="calendar-next" aria-label="Next ${view}">›</button>
       </div></div>
-      <div class="calendar-views"><div class="segmented" role="group" aria-label="Calendar view">${['week', 'month'].map(option => `<button type="button" data-action="calendar-view" data-view="${option}" aria-pressed="${view === option}">${option[0].toUpperCase() + option.slice(1)}</button>`).join('')}</div><div class="calendar-key">${['task', 'workout', 'run'].map(kind => `<span>${marker(kind)}${typeName(kind)}</span>`).join('')}</div></div>
+      <div class="calendar-views"><div class="segmented" role="group" aria-label="Calendar view">${['week', 'month'].map(option => `<button type="button" data-action="calendar-view" data-view="${option}" aria-pressed="${view === option}">${option[0].toUpperCase() + option.slice(1)}</button>`).join('')}</div></div>
       ${view === 'month' ? monthGrid(ctx) : schedule(ctx, dates)}
     </section>`;
   };
