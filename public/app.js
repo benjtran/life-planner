@@ -84,6 +84,10 @@
   const brand = (extra = '') => `<div class="brand ${extra}"><span class="brand-mark">${icon('mark')}</span>Daymark</div>`;
 
   function render() {
+    const focused = document.activeElement;
+    const focusRegion = focused?.closest('#sidebar, #mobile-nav, #topbar, #heading, #view');
+    const focusData = focused?.matches('button[data-action]') ? Object.entries(focused.dataset) : null;
+    const completedOpen = $('view').querySelector('.planner-completed')?.open;
     const nav = Object.entries(sections).map(([name, label]) => `<button class="nav-button" type="button" data-action="navigate" data-section="${name}"${section === name ? ' aria-current="page"' : ''}>${icon(name)}<span>${label}</span></button>`).join('');
     $('sidebar').innerHTML = `${brand()}<nav aria-label="Main navigation">${nav}</nav><div class="sidebar-bottom"><button class="nav-button" type="button" data-action="devices">${icon('devices')} Devices</button><small>${sync.code ? 'Shared on Wi‑Fi' : 'Saved on this device'}</small></div>`;
     $('mobile-nav').innerHTML = nav;
@@ -91,6 +95,13 @@
     $('heading').innerHTML = section === 'calendar' ? `<div class="page-heading"><h1>Planner</h1><button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button></div>` : '';
     const ctx = {state, date, today, view, esc, pretty, addDays, taskTone, agenda, trainingView, progressExercise};
     $('view').innerHTML = window.DaymarkViews[section](ctx);
+    const completed = $('view').querySelector('.planner-completed');
+    if (completed && completedOpen) completed.open = true;
+    if (focusRegion && focusData) {
+      const replacement = Array.from(focusRegion.querySelectorAll('button[data-action]')).find(button => !button.disabled && focusData.every(([key, value]) => button.dataset[key] === value));
+      const fallback = focusRegion === $('view') && (completed?.querySelector('summary') || focusRegion.querySelector('[data-action="calendar-view"][aria-pressed="true"]'));
+      (replacement || fallback)?.focus?.({preventScroll: true});
+    }
   }
 
   function persist() {
@@ -197,9 +208,15 @@
 
   function navigate(target) {
     if (!(target in sections)) return;
+    const changed = target !== section;
     section = target;
     render();
     window.scrollTo(0, 0);
+    if (changed) {
+      const heading = $('workspace').querySelector('h1');
+      heading.tabIndex = -1;
+      heading.focus({preventScroll: true});
+    }
   }
 
   function stepDate(direction) {
