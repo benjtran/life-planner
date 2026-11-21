@@ -21,6 +21,21 @@ test('reusable workout days repeat on assigned weekdays from their start date', 
   assert.equal(Object.keys(state.days).length, 0, 'reading a recurring workout does not save an empty session');
 });
 
+test('workouts on the same date schedule a shared exercise once and keep sets isolated by date', () => {
+  const state = withDefaults({...planner(), templates: [
+    ...planner().templates,
+    {id: 'legs', title: 'Leg day', weekdays: [1, 2], startDate: '2026-11-23', exercises: [{id: 'old-copy', name: ' LAT  PULLDOWN '}]}
+  ]});
+  assert.equal(state.exerciseLibrary.length, 1);
+  const monday = pinWorkout(state, '2026-11-23').exercises;
+  const tuesday = pinWorkout(state, '2026-11-24').exercises;
+  assert.equal(monday.length, 1);
+  assert.equal(tuesday.length, 1);
+  assert.equal(monday[0].exerciseId, tuesday[0].exerciseId);
+  monday[0].sets[0].reps = 9;
+  assert.equal(tuesday[0].sets[0].reps, null);
+});
+
 test('an empty session saved before a workout was assigned still shows the scheduled exercises', () => {
   const state = planner();
   const date = '2026-11-23';

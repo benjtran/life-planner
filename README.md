@@ -2,6 +2,8 @@
 
 lifesolver organizes tasks and training. Calendar gives a read-only overview of the week or month. Select a date to open its Tasks checklist and check off scheduled runs when you finish them. All tasks shows every deadline and the selected week's training. Under Training, assign weekdays to workout days or run types, log workout sets, and view lifting progress. Log workout opens today's scheduled session, and Finish workout saves your sets and marks the workout complete in Tasks. Saved changes support undo and redo.
 
+Use **Add existing exercise** to share one exercise across multiple workout days. Progress combines its sets from every workout. Select **Edit workout** in Session history to correct a past session.
+
 ## Run on your computer
 
 With Node.js 22 or newer, run `npm start` from this repository and open <http://127.0.0.1:4173/>. A new planner starts empty. The app has no package dependencies.

@@ -16,7 +16,8 @@
       const name = esc(exercise.name || 'Untitled exercise');
       const sets = exercise.sets || [];
       return `<article class="training-exercise">
-        <h3>${name}</h3>
+        <div class="exercise-heading"><h3>${name}</h3>${exercise.exerciseId && exercise.kind !== 'cardio'
+          ? `<button class="text-action" type="button" data-action="exercise-progress" data-exercise="${esc(exercise.exerciseId)}" aria-label="View progress for ${name}">Progress</button>` : ''}</div>
         ${exercise.kind === 'cardio'
           ? `<form class="cardio-entry" data-form="save-cardio" data-id="${id}"><label>Duration (min)<input type="number" inputmode="decimal" min="0" step="any" name="minutes" value="${esc(exercise.minutes)}"></label></form>`
           : `${sets.length ? `<div class="set-heading" aria-hidden="true"><span>Set</span><span>Reps</span><span>Weight</span></div>` : ''}
@@ -54,15 +55,36 @@
     return `<div class="template-exercise">
       <strong>${name}</strong>
       <div class="template-exercise-actions">
+        <button class="btn" type="button" data-action="exercise-progress" data-exercise="${esc(exercise.id)}" aria-label="View progress for ${name}">Progress</button>
         <button class="btn" type="button" data-action="edit-template-exercise" ${attributes} aria-label="Rename ${name}">Rename</button>
         <button class="btn danger-text" type="button" data-action="delete-template-exercise" ${attributes} aria-label="Remove ${name}">Remove</button>
       </div>
       <form class="template-rename" data-form="rename-template-exercise" ${attributes} hidden>
         <label>Exercise name<input name="name" value="${name}" required></label>
+        <p class="muted">Renames this exercise in every workout and its progress history.</p>
         <div class="template-exercise-actions">
           <button class="btn primary" type="submit">Save name</button>
           <button class="btn" type="button" data-action="cancel-exercise-rename">Cancel</button>
         </div>
+      </form>
+    </div>`;
+  }
+
+  function templateExercises(ctx, workout) {
+    const {state, esc} = ctx;
+    const attached = new Set(workout.exercises.map(exercise => exercise.id));
+    const available = state.exerciseLibrary.filter(exercise => !attached.has(exercise.id)).sort((a, b) => a.name.localeCompare(b.name));
+    const attrs = `data-id="${esc(workout.id)}"`;
+    return `<div class="template-exercises">
+      <div class="section-heading"><h2>Exercises</h2><span class="exercise-count">${attached.size} TOTAL</span></div>
+      ${workout.exercises.map(exercise => templateExerciseRow(esc, workout.id, exercise)).join('')}
+      ${available.length ? `<form class="template-add" data-form="link-template-exercise" ${attrs}>
+        <label>Add existing exercise<select name="exercise" required><option value="">Choose an exercise</option>${available.map(exercise => `<option value="${esc(exercise.id)}">${esc(exercise.name)}</option>`).join('')}</select></label>
+        <button class="btn" type="submit">Add</button>
+      </form>` : ''}
+      <form class="template-add" data-form="add-template-exercise" ${attrs}>
+        <label>New exercise name<input name="name" required placeholder="e.g. Lat pulldown"></label>
+        <button class="btn" type="submit">Create exercise</button>
       </form>
     </div>`;
   }
@@ -74,7 +96,7 @@
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const weekdays = selected && Array.isArray(selected.weekdays) ? selected.weekdays : [];
     return `<div class="template-layout"><div><div class="section-heading"><h2>Workout days</h2><span class="exercise-count">${templates.length} SAVED</span></div><div class="template-list">${templates.length ? templates.map(t => `<button type="button" class="template-item" data-action="select-template" data-id="${esc(value(t.id))}" aria-pressed="${t === selected}"><strong>${esc(value(t.title))}</strong><span>${(t.weekdays || []).map(d => days[d]).filter(Boolean).join(' · ') || 'No days assigned'} · ${(t.exercises || []).length} exercises</span></button>`).join('') : '<div class="training-empty"><h3>No workout days yet</h3><p>Create one to reuse throughout the week.</p></div>'}</div><button type="button" class="text-action new-template" data-action="select-template" data-id="">+ New workout day</button></div>
-      <div class="panel template-editor"><div class="section-heading"><h2>${selected ? 'Edit workout day' : 'Create a new workout'}</h2>${selected ? `<button type="button" class="text-action" data-action="delete-template" data-id="${esc(value(selected.id))}">Delete</button>` : ''}</div><form data-form="save-template"${selected ? ` data-id="${esc(value(selected.id))}"` : ''}><label>Name<input name="title" required value="${esc(value(selected && selected.title))}" placeholder="e.g. Back Day"></label><fieldset><legend>Repeat on</legend><div class="weekday-picker">${days.map((day, i) => `<label><input type="checkbox" name="weekday" value="${i}"${weekdays.includes(i) ? ' checked' : ''}><span>${day}</span></label>`).join('')}</div></fieldset><button class="btn primary" type="submit">${selected ? 'Save workout' : 'Create workout'}</button></form>${selected ? `<div class="template-exercises"><div class="section-heading"><h2>Exercises</h2><span class="exercise-count">${(selected.exercises || []).length} TOTAL</span></div>${(selected.exercises || []).map(exercise => templateExerciseRow(esc, selected.id, exercise)).join('')}<form class="template-add" data-form="add-template-exercise" data-id="${esc(value(selected.id))}"><label>Exercise name<input name="name" required placeholder="e.g. Lat pulldown"></label><button class="btn" type="submit">+ Add</button></form></div>` : ''}</div></div>`;
+      <div class="panel template-editor"><div class="section-heading"><h2>${selected ? 'Edit workout day' : 'Create a new workout'}</h2>${selected ? `<button type="button" class="text-action" data-action="delete-template" data-id="${esc(value(selected.id))}">Delete</button>` : ''}</div><form data-form="save-template"${selected ? ` data-id="${esc(value(selected.id))}"` : ''}><label>Name<input name="title" required value="${esc(value(selected && selected.title))}" placeholder="e.g. Back Day"></label><fieldset><legend>Repeat on</legend><div class="weekday-picker">${days.map((day, i) => `<label><input type="checkbox" name="weekday" value="${i}"${weekdays.includes(i) ? ' checked' : ''}><span>${day}</span></label>`).join('')}</div></fieldset><button class="btn primary" type="submit">${selected ? 'Save workout' : 'Create workout'}</button></form>${selected ? templateExercises(ctx, selected) : ''}</div></div>`;
   };
 
   const runningView = function (ctx) {
@@ -126,20 +148,17 @@
   const shortProgressDate = new Intl.DateTimeFormat('en', {month: 'short', day: 'numeric'});
   const displayAverage = number => number === null ? '—' : averageNumber.format(number);
 
-  function progressExercises(days) {
-    const groups = new Map();
-    for (const [date, day] of Object.entries(days).sort(([a], [b]) => a.localeCompare(b))) {
+  function progressExercises(state) {
+    const groups = new Map(state.exerciseLibrary.map(exercise => [exercise.id, {...exercise, dates: new Map()}]));
+    for (const [date, day] of Object.entries(state.days).sort(([a], [b]) => a.localeCompare(b))) {
       for (const exercise of day.workout?.exercises || []) {
-        const name = value(exercise.name).trim();
-        if (!name || exercise.kind === 'cardio') continue;
-        const key = name.toLocaleLowerCase();
-        if (!groups.has(key)) groups.set(key, {name, dates: new Map()});
-        const dates = groups.get(key).dates;
+        const dates = groups.get(exercise.exerciseId)?.dates;
+        if (!dates) continue;
         if (!dates.has(date)) dates.set(date, []);
         dates.get(date).push(...(exercise.sets || []));
       }
     }
-    return [...groups.values()].flatMap(({name, dates}) => {
+    return [...groups.values()].map(({id, name, dates}) => {
       const records = [];
       for (const [date, entries] of dates) {
         const sets = entries.flatMap((set, index) => {
@@ -149,9 +168,9 @@
           const volume = weight === null || reps === null ? null : num(weight * reps);
           return [{index: index + 1, weight, reps, volume}];
         });
-        if (sets.length) records.push({date, sets});
+        if (sets.length) records.push({date, sets, workout: state.days[date].workout.title});
       }
-      return records.length ? [{name, records}] : [];
+      return {id, name, records};
     }).sort((a, b) => a.name.localeCompare(b.name));
   }
 
@@ -177,7 +196,7 @@
 
   function progressChart(ctx, selection, metric) {
     const {esc, pretty} = ctx;
-    const {name, records} = selection;
+    const {id, name, records} = selection;
     const sessions = records.map(record => ({date: record.date, sets: record.sets.filter(set => set[metric] !== null), mean: averageFor(record.sets, metric)}));
     const values = sessions.flatMap(day => day.sets.map(set => set[metric]));
     if (!values.length) {
@@ -206,7 +225,7 @@
 
     return `<div class="chart-frame">
       <div class="chart-axis" aria-hidden="true"><div class="chart-axis-scale">${ticks.map(tick => `<span style="--tick:${y(tick)}%">${axisNumber.format(tick)}</span>`).join('')}</div></div>
-      <div class="chart-scroll" data-chart-exercise="${esc(name)}" tabindex="0" role="region" aria-label="Workout dates">
+      <div class="chart-scroll" data-chart-exercise="${esc(id)}" tabindex="0" role="region" aria-label="Workout dates">
         <div class="chart-plot" style="--chart-min-width:${sessions.length * slotWidth}px">
           <div class="chart-gridlines" aria-hidden="true">${ticks.map(tick => `<i style="--tick:${y(tick)}%"></i>`).join('')}</div>
           <svg class="chart-trend" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="${trend}" vector-effect="non-scaling-stroke"/></svg>
@@ -232,8 +251,12 @@
       <h2 id="progress-history-title">Session history</h2>
       <div class="history-table-wrap"><table class="history-table">
         <thead><tr><th scope="col">Date</th><th scope="col">Sets</th><th scope="col">Avg. weight</th><th scope="col">Avg. reps</th>${showVolume ? '<th scope="col">Avg. volume</th>' : ''}</tr></thead>
-        <tbody>${records.slice().reverse().map(({date, sets}) => `<tr>
-          <th scope="row">${esc(pretty(date))}</th>
+        <tbody>${records.slice().reverse().map(({date, sets, workout}) => `<tr>
+          <th scope="row"><div class="history-session">
+            <time datetime="${esc(date)}">${esc(pretty(date))}</time>
+            ${workout ? `<span class="muted">${esc(workout)}</span>` : ''}
+            <button type="button" class="text-action" data-action="edit-session" data-date="${esc(date)}" aria-label="Edit workout on ${esc(pretty(date))}">Edit workout</button>
+          </div></th>
           <td><details><summary aria-label="${esc(`View ${sets.length} ${sets.length === 1 ? 'set' : 'sets'} on ${pretty(date)}`)}">${sets.length} ${sets.length === 1 ? 'set' : 'sets'}</summary>
             <ul class="history-sets" role="list">${sets.map(set => `<li><strong>Set ${set.index}</strong><span>${set.weight === null ? 'Weight —' : `Weight ${set.weight}`}</span><span>${set.reps === null ? 'Reps —' : `Reps ${set.reps}`}</span></li>`).join('')}</ul>
           </details></td>
@@ -246,9 +269,10 @@
 
   function progressView(ctx) {
     const {esc} = ctx;
-    const options = progressExercises(ctx.state.days || {});
-    const selected = options.find(option => option.name.toLocaleLowerCase() === ctx.progressExercise.toLocaleLowerCase())
-      || options.reduce((latest, option) => !latest || option.records.at(-1).date > latest.records.at(-1).date ? option : latest, null);
+    const options = progressExercises(ctx.state);
+    const selected = options.find(option => option.id === ctx.progressExercise)
+      || options.filter(option => option.records.length).reduce((latest, option) => !latest || option.records.at(-1).date > latest.records.at(-1).date ? option : latest, null)
+      || options[0];
     if (!selected) return '<div class="training-empty"><h2>No progress yet</h2><p>Log sets for a strength exercise to see your progress.</p></div>';
 
     const metric = ctx.progressMetric || (selected.records.some(day => day.sets.some(set => set.weight !== null)) ? 'weight' : 'reps');
@@ -256,8 +280,8 @@
       ? 'Set volume is weight × reps. The daily average includes sets with both values recorded.'
       : `Each daily average uses the sets with a ${progressMetrics[metric].toLowerCase()} value recorded that day.`;
     return `<div class="progress-view">
-      <div class="progress-intro"><h2>Progress</h2><label class="progress-selector">Exercise<select data-change="progress-exercise">${options.map(option => `<option value="${esc(option.name)}"${option === selected ? ' selected' : ''}>${esc(option.name)}</option>`).join('')}</select></label></div>
-      <article class="panel chart-card" aria-labelledby="progress-chart-title">
+      <div class="progress-intro"><h2>Progress</h2><label class="progress-selector">Exercise<select data-change="progress-exercise">${options.map(option => `<option value="${esc(option.id)}"${option === selected ? ' selected' : ''}>${esc(option.name)}</option>`).join('')}</select></label></div>
+      ${selected.records.length ? `<article class="panel chart-card" aria-labelledby="progress-chart-title">
         <div class="chart-heading">
           <h3 id="progress-chart-title">${esc(selected.name)}</h3>
           <div class="segmented" role="group" aria-label="Chart metric">${Object.entries(progressMetrics).map(([key, label]) => `<button type="button" data-action="progress-metric" data-metric="${key}" aria-pressed="${metric === key}">${label}</button>`).join('')}</div>
@@ -266,7 +290,7 @@
         ${progressChart(ctx, selected, metric)}
         <p class="history-note">${chartNote}</p>
       </article>
-      ${progressHistory(ctx, selected.records, metric)}
+      ${progressHistory(ctx, selected.records, metric)}` : `<div class="training-empty"><h3>No progress yet</h3><p>Log sets for ${esc(selected.name)} to see your progress.</p></div>`}
     </div>`;
   }
 

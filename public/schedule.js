@@ -4,9 +4,45 @@
   const defaultRunGoals = {high: 2, low: 4, highDistance: '10–15 km', lowDistance: '5 km'};
   const emptyWorkout = () => ({title: '', exercises: []});
   const blankSet = () => ({reps: null, weight: null});
+  const exerciseNameKey = name => String(name ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
 
   function withDefaults(state) {
-    return {...state, templates: state.templates || [], runs: state.runs || [], runTypes: state.runTypes || [], plannedCompletions: state.plannedCompletions || {}, runGoals: {...defaultRunGoals, ...state.runGoals}};
+    const library = new Map((state.exerciseLibrary || []).map(exercise => [exercise.id, exercise]));
+    const names = new Map([...library.values()].map(exercise => [exerciseNameKey(exercise.name), exercise]));
+    const aliases = new Map();
+
+    // Older workout days made a new ID for each exercise. Match their names
+    // when there is no library reference, and retain each saved session row.
+    function register(entry) {
+      const reference = entry.exerciseId || entry.id;
+      const key = exerciseNameKey(entry.name);
+      let exercise = library.get(reference) || aliases.get(reference) || names.get(key);
+      if (!exercise && key) {
+        exercise = {id: reference || `legacy-exercise:${key}`, name: entry.name.trim()};
+        library.set(exercise.id, exercise);
+        names.set(key, exercise);
+      }
+      if (reference && exercise) aliases.set(reference, exercise);
+      return exercise;
+    }
+
+    const templates = (state.templates || []).map(template => {
+      const exercises = new Map();
+      for (const entry of template.exercises || []) {
+        const exercise = register(entry);
+        if (exercise && !exercises.has(exercise.id)) exercises.set(exercise.id, {...entry, ...exercise});
+      }
+      return {...template, exercises: [...exercises.values()]};
+    });
+    const days = Object.fromEntries(Object.entries(state.days || {}).map(([date, day]) => {
+      if (!day.workout?.exercises) return [date, day];
+      const exercises = day.workout.exercises.map((entry, index) => {
+        const exercise = entry.kind !== 'cardio' && register(entry);
+        return exercise ? {...entry, id: entry.id || `legacy-session-row:${index}`, exerciseId: exercise.id, name: exercise.name} : entry;
+      });
+      return [date, {...day, workout: {...day.workout, exercises}}];
+    }));
+    return {...state, days, templates, exerciseLibrary: [...library.values()], runs: state.runs || [], runTypes: state.runTypes || [], plannedCompletions: state.plannedCompletions || {}, runGoals: {...defaultRunGoals, ...state.runGoals}};
   }
 
   const scheduledFor = (items, date) => {
@@ -27,10 +63,13 @@
     if (!scheduled.length) return saved || emptyWorkout();
 
     const existing = saved?.exercises || [];
-    const existingNames = new Set(existing.map(exercise => exercise.name.toLowerCase()));
-    const recurring = scheduled.flatMap(template => template.exercises)
-      .filter(exercise => !existingNames.has(exercise.name.toLowerCase()))
-      .map(exercise => ({...exercise, kind: 'strength', sets: [blankSet()]}));
+    const used = new Set(existing.map(exercise => exercise.exerciseId || exercise.id));
+    const recurring = [];
+    for (const exercise of scheduled.flatMap(template => template.exercises)) {
+      if (used.has(exercise.id)) continue;
+      used.add(exercise.id);
+      recurring.push({...exercise, exerciseId: exercise.id, kind: 'strength', sets: [blankSet()]});
+    }
     const titles = [...new Set([saved?.title, ...scheduled.map(template => template.title)].filter(Boolean))];
     return {title: titles.join(' + '), exercises: [...existing, ...recurring]};
   }
@@ -103,5 +142,5 @@
     return workout;
   }
 
-  window.DaymarkSchedule = {withDefaults, workoutFor, pinWorkout, emptyWorkout, blankSet, activitiesFor, workoutItemId, formatRunPace, splitRunPace, applyWorkoutInputs};
+  window.DaymarkSchedule = {withDefaults, exerciseNameKey, workoutFor, pinWorkout, emptyWorkout, blankSet, activitiesFor, workoutItemId, formatRunPace, splitRunPace, applyWorkoutInputs};
 })();

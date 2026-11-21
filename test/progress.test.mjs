@@ -4,11 +4,13 @@ import {test} from 'node:test';
 import {runInNewContext} from 'node:vm';
 
 const window = {};
-runInNewContext(readFileSync(new URL('../public/training.js', import.meta.url), 'utf8'), {window});
+for (const script of ['schedule', 'training']) {
+  runInNewContext(readFileSync(new URL(`../public/${script}.js`, import.meta.url), 'utf8'), {window});
+}
 const training = window.DaymarkViews.training;
 const exercises = (...sets) => ({workout: {exercises: [{name: 'Lat pulldown', kind: 'strength', sets}]}});
 const render = (days, progressMetric = '') => training({
-  state: {days}, trainingView: 'progress', progressExercise: 'Lat pulldown', progressMetric,
+  state: window.DaymarkSchedule.withDefaults({days}), trainingView: 'progress', progressExercise: '', progressMetric,
   pretty: date => date, esc: String
 });
 
@@ -60,4 +62,23 @@ test('volume averages individual weight × reps products and skips incomplete se
   assert.match(volume, /<th scope="col">Avg\. volume<\/th>/);
   assert.match(volume, /<td>426\.67<\/td>/);
   assert.match(render({'2026-11-20': days['2026-11-20']}, 'volume'), /Log both weight and reps in the same set/);
+});
+
+test('legacy logs from different workouts and multiple rows on one day share one exercise history', () => {
+  const days = {
+    '2026-11-19': {workout: {title: 'Chest and back', exercises: [
+      {id: 'crunch-a', name: 'Crunch machine', sets: [{weight: 35, reps: 10}]},
+      {id: 'crunch-b', name: 'crunch machine', sets: [{weight: 45, reps: 8}]},
+    ]}},
+    '2026-11-20': {workout: {title: 'Leg day', exercises: [
+      {id: 'crunch-b', name: ' CRUNCH  MACHINE ', sets: [{weight: 50, reps: 12}]},
+    ]}}
+  };
+  const chart = render(days);
+  assert.equal((chart.match(/<option /g) || []).length, 1);
+  assert.match(chart, /2026-11-19, Daily average · 2 sets, Weight 40/);
+  assert.match(chart, /2026-11-19, Set 2, Weight 45 · Reps 8/);
+  assert.match(chart, /2026-11-20, Daily average · 1 set, Weight 50/);
+  assert.match(chart, /<span class="muted">Chest and back<\/span>/);
+  assert.match(chart, /data-action="edit-session" data-date="2026-11-20"/);
 });

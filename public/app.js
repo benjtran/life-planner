@@ -18,7 +18,7 @@
   const today = dateKey(new Date());
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[char]));
   const id = () => globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  const {withDefaults, workoutFor, pinWorkout, emptyWorkout, blankSet, activitiesFor, workoutItemId, formatRunPace, splitRunPace, applyWorkoutInputs} = window.DaymarkSchedule;
+  const {withDefaults, exerciseNameKey, workoutFor, pinWorkout, emptyWorkout, blankSet, activitiesFor, workoutItemId, formatRunPace, splitRunPace, applyWorkoutInputs} = window.DaymarkSchedule;
   const blankDay = () => ({workout: emptyWorkout(), cardio: ''});
   const taskTone = (due) => !due ? 'none' : due === today ? 'today' : due === addDays(today, 1) ? 'tomorrow' : due < today ? 'overdue' : 'later';
   const mondayOf = (value) => addDays(value, -((parseDate(value).getDay() + 6) % 7));
@@ -271,6 +271,23 @@
     return saved;
   }
 
+  async function addTemplateExercise(templateId, {existingId, name}) {
+    const template = state.templates.find(entry => entry.id === templateId);
+    if (!template) return;
+    const existing = state.exerciseLibrary.find(entry => existingId ? entry.id === existingId : exerciseNameKey(entry.name) === exerciseNameKey(name));
+    if (existingId && !existing) return notify('Choose an exercise to add.');
+    if (existing && template.exercises.some(entry => entry.id === existing.id)) return notify('This exercise is already on this workout day.');
+    const exercise = existing || {id: id(), name};
+    const saved = await changeTemplateExercises(existing ? 'Existing exercise added to workout day.' : 'Exercise created and added to workout day.', templateId, (entry, next) => {
+      if (!existing) next.exerciseLibrary.push(exercise);
+      entry.exercises.push(exercise);
+    });
+    if (saved) {
+      const selector = existingId ? '[data-form="link-template-exercise"] select' : '[data-form="add-template-exercise"] input';
+      ($('view').querySelector(selector) || $('view').querySelector('[data-form="add-template-exercise"] input'))?.focus();
+    }
+  }
+
   const isEntryField = field => field instanceof HTMLInputElement
     && ['text', 'number', 'date', 'email', 'tel', 'url', 'search', 'password'].includes(field.type)
     && !field.matches(':disabled, [readonly]') && field.getClientRects().length > 0;
@@ -311,9 +328,10 @@
     return true;
   }
 
-  function showWorkoutDate(nextDate) {
+  function showWorkoutDate(nextDate, nextView = trainingView) {
     return leaveWorkout(() => {
       workoutDate = nextDate;
+      trainingView = nextView;
       render();
       $('training-date')?.focus({preventScroll: true});
     });
@@ -403,6 +421,14 @@
       }
       case 'new-task': return taskEditor();
       case 'open-workout': workoutDate = actionDate; trainingView = 'workout'; return navigate('training');
+      case 'edit-session': return showWorkoutDate(actionDate, 'workout');
+      case 'exercise-progress': return leaveWorkout(() => {
+        progressExercise = exerciseId;
+        progressMetric = '';
+        trainingView = 'progress';
+        render();
+        $('view').querySelector('[data-change="progress-exercise"]')?.focus();
+      });
       case 'training-view': {
         const target = button.dataset.view;
         if (target === trainingView) return;
@@ -558,22 +584,22 @@
       case 'add-template-exercise': {
         const name = get('name');
         if (!name) return notify('Enter an exercise name.');
-        const saved = await changeTemplateExercises('Exercise added to workout day.', itemId, template => template.exercises.push({id: id(), name}));
-        if (saved) $('view').querySelector('[data-form="add-template-exercise"] input')?.focus();
-        return;
+        return addTemplateExercise(itemId, {name});
+      }
+      case 'link-template-exercise': {
+        const existingId = get('exercise');
+        if (!existingId) return notify('Choose an exercise to add.');
+        return addTemplateExercise(itemId, {existingId});
       }
       case 'rename-template-exercise': {
         const name = get('name');
         if (!name) return notify('Enter an exercise name.');
-        const saved = await changeTemplateExercises('Exercise renamed.', itemId, (template, next) => {
-          const exercise = template.exercises.find(entry => entry.id === exerciseId);
-          if (!exercise) return;
-          exercise.name = name;
-          for (const day of Object.values(next.days)) {
-            for (const entry of day.workout?.exercises || []) {
-              if (entry.id === exerciseId) entry.name = name;
-            }
-          }
+        if (state.exerciseLibrary.some(entry => entry.id !== exerciseId && exerciseNameKey(entry.name) === exerciseNameKey(name))) {
+          return notify('That name is already used by another exercise.');
+        }
+        const saved = await changeTemplateExercises('Exercise renamed across workouts and progress.', itemId, (_, next) => {
+          const exercise = next.exerciseLibrary.find(entry => entry.id === exerciseId);
+          if (exercise) exercise.name = name;
         });
         if (saved) {
           const edit = [...$('view').querySelectorAll('[data-action="edit-template-exercise"]')].find(button => button.dataset.id === itemId && button.dataset.exercise === exerciseId);

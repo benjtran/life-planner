@@ -73,8 +73,26 @@ test('Renaming keeps the exercise ID and its previously logged sets', async () =
   });
   assert.deepEqual(snapshot().state.templates[0].exercises[0], {id: 'lat', name: 'Wide-grip pulldown'});
   assert.deepEqual(snapshot().state.days[historyDate].workout.exercises[0], {
-    id: 'lat', name: 'Wide-grip pulldown', sets: [{reps: 9, weight: 55}]
+    id: 'lat', exerciseId: 'lat', name: 'Wide-grip pulldown', sets: [{reps: 9, weight: 55}]
   });
+});
+
+test('adding a shared exercise, renaming it, and undoing work across workout days', async () => {
+  const state = planner();
+  state.templates.push({id: 'legs', title: 'Leg day', weekdays: [2], exercises: []});
+  const {events, snapshot} = app(state);
+  const submit = (form, data, exercise) => events.get('submit')({
+    target: {dataset: {form, id: 'legs', exercise}, values: data}, preventDefault() {}
+  });
+  await submit('link-template-exercise', {exercise: 'lat'});
+  await submit('add-template-exercise', {name: ' LAT   PULLDOWN '});
+  await submit('rename-template-exercise', {name: 'Row'}, 'lat');
+  assert.deepEqual(snapshot().state.templates[1].exercises, [exercise]);
+  await submit('rename-template-exercise', {name: 'Cable pulldown'}, 'lat');
+  assert.deepEqual(snapshot().state.templates.map(template => template.exercises[0].name), ['Cable pulldown', 'Cable pulldown']);
+  assert.deepEqual(snapshot().state.days[historyDate].workout.exercises[0].sets, [{reps: 9, weight: 55}]);
+  await events.get('click')({target: {closest: selector => selector === 'button[data-action]' ? {dataset: {action: 'undo'}} : null}});
+  assert.deepEqual(snapshot().state.templates.map(template => template.exercises[0].name), ['Lat pulldown', 'Lat pulldown']);
 });
 
 test('Enter advances between valid entry fields, including across workout sets', () => {
