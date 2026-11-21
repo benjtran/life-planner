@@ -2,14 +2,21 @@
   'use strict';
 
   const views = window.DaymarkViews ||= {};
-  const labels = {overdue: 'Overdue', today: 'Today', tomorrow: 'Tomorrow', later: 'Upcoming', none: 'No date'};
+  const labels = {overdue: 'Overdue', today: 'Today', tomorrow: 'Tomorrow', later: 'Upcoming'};
+  const symbols = {
+    overdue: '<path d="M8 2 15 14H1L8 2Zm0 4v3m0 2.3v.2" stroke-linecap="round" stroke-linejoin="round"/>',
+    today: '<circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2" fill="currentColor" stroke="none"/>',
+    tomorrow: '<path d="m8 1 7 7-7 7-7-7 7-7Z" stroke-linejoin="round"/><path d="m7 5.5 2.5 2.5L7 10.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  };
 
   views.taskRow = function (ctx, task, compact = false) {
     const {esc, pretty, taskTone} = ctx;
     const tone = task.due ? taskTone(task.due) : 'none';
     const date = task.due ? pretty(task.due) : 'No due date';
-    return `<li class="task-list-row task-date-${esc(tone)}${task.done ? ' is-done' : ''}${compact ? ' is-compact' : ''}">
-      <div class="task-date"><span>${esc(date)}</span>${task.due ? `<small>${esc(task.done ? 'Completed' : labels[tone] || 'Upcoming')}</small>` : ''}</div>
+    const symbol = !task.done && symbols[tone];
+    const label = task.done ? 'Completed' : labels[tone];
+    return `<li class="task-list-row task-date-${esc(tone)}${symbol ? ' has-deadline-status' : ''}${task.done ? ' is-done' : ''}${compact ? ' is-compact' : ''}">
+      <div class="task-date"><span class="task-due-date">${esc(date)}</span>${label ? `<small class="task-status">${symbol ? `<svg class="task-status-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">${symbol}</svg>` : ''}${esc(label)}</small>` : ''}</div>
       <div class="task-content">
         <button class="task-check" type="button" data-action="toggle-task" data-id="${esc(task.id)}" aria-label="${task.done ? 'Restore' : 'Complete'} ${esc(task.title)}" aria-pressed="${task.done ? 'true' : 'false'}"><span aria-hidden="true">${task.done ? '✓' : ''}</span></button>
         <span class="task-title">${esc(task.title)}</span>

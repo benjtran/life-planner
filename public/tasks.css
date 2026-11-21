@@ -14,10 +14,11 @@
 .task-list-row:last-child { border-bottom: 0; }
 .task-list-row:nth-child(even) .task-content { background: #f9faf6; }
 .task-date { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; padding: 14px 19px; background: var(--panel); color: #4f5e53; font-size: .86rem; font-weight: 700; }
-.task-date small { font-size: .67rem; font-weight: 700; letter-spacing: .055em; text-transform: uppercase; }
-.task-date-overdue:not(.is-done) .task-date { background: #ffd3cd; color: #841e1b; }
-.task-date-today:not(.is-done) .task-date { background: #c6eccf; color: #1c5c36; }
-.task-date-tomorrow:not(.is-done) .task-date { background: #ffeba3; color: #6b4a08; }
+.task-status { display: flex; align-items: center; gap: 5px; font-size: .8rem; font-weight: 750; line-height: 1.2; }
+.task-status-icon { flex: none; width: 15px; height: 15px; }
+.task-date-overdue.has-deadline-status .task-date { background: #791934; color: #fff; }
+.task-date-today.has-deadline-status .task-date { background: #25795f; color: #fff; }
+.task-date-tomorrow.has-deadline-status .task-date { background: #ffde66; color: #392800; }
 .task-content { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 10px 14px 10px 19px; }
 .task-check { display: grid; place-items: center; flex: 0 0 23px; width: 23px; height: 23px; padding: 0; border: 1.5px solid #9aa99c; border-radius: 6px; background: var(--panel); color: white; font-size: .9rem; line-height: 1; }
 .task-check:hover { border-color: var(--accent); }

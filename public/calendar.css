@@ -120,6 +120,8 @@
 .calendar-tasks { overflow: hidden; border: 1px solid var(--line); border-radius: 10px; }
 .week-tasks .task-list-row.is-compact { grid-template-columns: minmax(0, 1fr); }
 .week-tasks .task-date { display: none; }
+.week-tasks .has-deadline-status .task-date { display: flex; padding: 6px 8px; }
+.week-tasks .task-due-date { display: none; }
 .week-tasks .task-content { padding: 4px; gap: 5px; }
 .week-tasks .task-edit { flex-basis: 20px; width: 20px; }
 .week-tasks .task-title { font-size: .8125rem; }
