@@ -22,7 +22,7 @@
           : `${sets.length ? `<div class="set-heading" aria-hidden="true"><span>Set</span><span>Reps</span><span>Weight</span></div>` : ''}
             <div class="sets">${sets.map((set, index) => `<form class="set-row" data-form="save-set" data-id="${id}" data-index="${index}">
               <span class="set-index">${index + 1}</span>
-              <input type="number" inputmode="numeric" min="0" step="any" name="reps" aria-label="${name}, set ${index + 1} reps" value="${esc(set.reps)}">
+              <input type="number" inputmode="numeric" enterkeyhint="next" min="0" step="any" name="reps" aria-label="${name}, set ${index + 1} reps" value="${esc(set.reps)}">
               <input type="number" inputmode="decimal" min="0" step="any" name="weight" aria-label="${name}, set ${index + 1} weight" value="${esc(set.weight)}">
               <button class="icon-action" type="button" data-action="delete-set" data-id="${id}" data-index="${index}" aria-label="Remove ${name} set ${index + 1}">×</button>
             </form>`).join('')}</div>
@@ -48,6 +48,25 @@
     </div>`;
   }
 
+  function templateExerciseRow(esc, templateId, exercise) {
+    const name = esc(exercise.name);
+    const attributes = `data-id="${esc(templateId)}" data-exercise="${esc(exercise.id)}"`;
+    return `<div class="template-exercise">
+      <strong>${name}</strong>
+      <div class="template-exercise-actions">
+        <button class="btn" type="button" data-action="edit-template-exercise" ${attributes} aria-label="Rename ${name}">Rename</button>
+        <button class="btn danger-text" type="button" data-action="delete-template-exercise" ${attributes} aria-label="Remove ${name}">Remove</button>
+      </div>
+      <form class="template-rename" data-form="rename-template-exercise" ${attributes} hidden>
+        <label>Exercise name<input name="name" value="${name}" required></label>
+        <div class="template-exercise-actions">
+          <button class="btn primary" type="submit">Save name</button>
+          <button class="btn" type="button" data-action="cancel-exercise-rename">Cancel</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
   const templatesView = function (ctx) {
     const {state, esc} = ctx;
     const templates = state.templates || [];
@@ -55,7 +74,7 @@
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const weekdays = selected && Array.isArray(selected.weekdays) ? selected.weekdays : [];
     return `<div class="template-layout"><div><div class="section-heading"><h2>Workout days</h2><span class="exercise-count">${templates.length} SAVED</span></div><div class="template-list">${templates.length ? templates.map(t => `<button type="button" class="template-item" data-action="select-template" data-id="${esc(value(t.id))}" aria-pressed="${t === selected}"><strong>${esc(value(t.title))}</strong><span>${(t.weekdays || []).map(d => days[d]).filter(Boolean).join(' · ') || 'No days assigned'} · ${(t.exercises || []).length} exercises</span></button>`).join('') : '<div class="training-empty"><h3>No workout days yet</h3><p>Create one to reuse throughout the week.</p></div>'}</div><button type="button" class="text-action new-template" data-action="select-template" data-id="">+ New workout day</button></div>
-      <div class="panel template-editor"><div class="section-heading"><h2>${selected ? 'Edit workout day' : 'Create a new workout'}</h2>${selected ? `<button type="button" class="text-action" data-action="delete-template" data-id="${esc(value(selected.id))}">Delete</button>` : ''}</div><form data-form="save-template"${selected ? ` data-id="${esc(value(selected.id))}"` : ''}><label>Name<input name="title" required value="${esc(value(selected && selected.title))}" placeholder="e.g. Back Day"></label><fieldset><legend>Repeat on</legend><div class="weekday-picker">${days.map((day, i) => `<label><input type="checkbox" name="weekday" value="${i}"${weekdays.includes(i) ? ' checked' : ''}><span>${day}</span></label>`).join('')}</div></fieldset><button class="btn primary" type="submit">${selected ? 'Save workout' : 'Create workout'}</button></form>${selected ? `<div class="template-exercises"><div class="section-heading"><h2>Exercises</h2><span class="exercise-count">${(selected.exercises || []).length} TOTAL</span></div>${(selected.exercises || []).map(ex => `<div class="template-exercise"><strong>${esc(value(ex.name))}</strong><button type="button" class="icon-action" data-action="delete-template-exercise" data-id="${esc(value(selected.id))}" data-exercise="${esc(value(ex.id))}" aria-label="Remove ${esc(value(ex.name))}">×</button></div>`).join('')}<form class="template-add" data-form="add-template-exercise" data-id="${esc(value(selected.id))}"><label>Exercise name<input name="name" required placeholder="e.g. Lat pulldown"></label><button class="btn" type="submit">+ Add</button></form></div>` : ''}</div></div>`;
+      <div class="panel template-editor"><div class="section-heading"><h2>${selected ? 'Edit workout day' : 'Create a new workout'}</h2>${selected ? `<button type="button" class="text-action" data-action="delete-template" data-id="${esc(value(selected.id))}">Delete</button>` : ''}</div><form data-form="save-template"${selected ? ` data-id="${esc(value(selected.id))}"` : ''}><label>Name<input name="title" required value="${esc(value(selected && selected.title))}" placeholder="e.g. Back Day"></label><fieldset><legend>Repeat on</legend><div class="weekday-picker">${days.map((day, i) => `<label><input type="checkbox" name="weekday" value="${i}"${weekdays.includes(i) ? ' checked' : ''}><span>${day}</span></label>`).join('')}</div></fieldset><button class="btn primary" type="submit">${selected ? 'Save workout' : 'Create workout'}</button></form>${selected ? `<div class="template-exercises"><div class="section-heading"><h2>Exercises</h2><span class="exercise-count">${(selected.exercises || []).length} TOTAL</span></div>${(selected.exercises || []).map(exercise => templateExerciseRow(esc, selected.id, exercise)).join('')}<form class="template-add" data-form="add-template-exercise" data-id="${esc(value(selected.id))}"><label>Exercise name<input name="name" required placeholder="e.g. Lat pulldown"></label><button class="btn" type="submit">+ Add</button></form></div>` : ''}</div></div>`;
   };
 
   const runningView = function (ctx) {
@@ -83,13 +102,13 @@
       <div class="panel template-editor">
         <div class="section-heading"><h2>${selected ? 'Edit run type' : 'Create a run type'}</h2>${selected ? `<button type="button" class="text-action" data-action="delete-run-type" data-id="${esc(selected.id)}">Delete</button>` : ''}</div>
         <form data-form="save-run-type"${selected ? ` data-id="${esc(selected.id)}"` : ''}>
-          <label>Name<input name="title" required value="${esc(selected?.title)}" placeholder="e.g. Easy run"></label>
-          <label>Distance (km)<input name="distance" type="number" inputmode="decimal" min="0.01" step="any" required value="${esc(selected?.distance)}"></label>
+          <label>Name<input name="title" required enterkeyhint="next" value="${esc(selected?.title)}" placeholder="e.g. Easy run"></label>
+          <label>Distance (km)<input name="distance" type="number" inputmode="decimal" enterkeyhint="next" min="0.01" step="any" required value="${esc(selected?.distance)}"></label>
           <fieldset class="run-pace">
             <legend>Pace goal (min/km, optional)</legend>
             ${selected?.pace && !pace ? `<p class="run-pace-current">Saved pace goal · ${esc(selected.pace)} min/km</p>` : ''}
             <div class="run-pace-fields">
-              <label>Minutes<input name="paceMinutes" type="number" min="0" step="1" inputmode="numeric" value="${esc(minutes)}" placeholder="0"></label>
+              <label>Minutes<input name="paceMinutes" type="number" min="0" step="1" inputmode="numeric" enterkeyhint="next" value="${esc(minutes)}" placeholder="0"></label>
               <label>Seconds<input name="paceSeconds" type="number" min="0" max="59" step="1" inputmode="numeric" value="${esc(seconds)}" placeholder="00"></label>
             </div>
           </fieldset>

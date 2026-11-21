@@ -29,6 +29,12 @@
 .template-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(290px,420px);gap:32px;align-items:start}.template-list{display:grid;gap:10px}.template-item{display:grid;gap:7px;width:100%;text-align:left;padding:18px 20px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);color:var(--ink);font:inherit;cursor:pointer}.template-item[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 3px 0 var(--accent)}.template-item span{font-size:.8rem;color:var(--muted)}.new-template{margin-top:14px}.template-editor{padding:24px}.template-editor form{display:grid;gap:16px}.template-editor fieldset{border:0;padding:0;margin:0}.template-editor legend{font-size:.75rem;font-weight:700;margin-bottom:10px}.weekday-picker{display:flex;flex-wrap:wrap;gap:6px}.training-view .weekday-picker label{display:block}.weekday-picker input{position:absolute;opacity:0;width:1px}.weekday-picker span{display:block;border:1px solid var(--line);border-radius:8px;padding:9px;font-size:.72rem;cursor:pointer}.weekday-picker input:checked+span{background:var(--accent);border-color:var(--accent);color:white}.weekday-picker input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}.template-exercises{border-top:1px solid var(--line);margin-top:28px;padding-top:20px}.template-exercise{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.template-add{grid-template-columns:1fr auto;align-items:end;margin-top:16px}
 .run-pace-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .run-pace-current { margin-bottom: 10px; color: var(--muted); font-size: .85rem; }
+.template-exercise { flex-wrap: wrap; gap: 8px 12px; }
+.template-exercise > strong { min-width: 0; overflow-wrap: anywhere; }
+.template-exercise-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.template-exercise-actions .btn { min-height: 34px; padding: 5px 9px; font-size: .8125rem; }
+.template-exercise.is-renaming > :not(form) { display: none; }
+.template-exercise .template-rename { width: 100%; gap: 8px; }
 
 @media (max-width: 850px) {
   .template-layout { grid-template-columns: 1fr; }

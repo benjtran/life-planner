@@ -204,7 +204,7 @@
     const dialog = $('task-editor');
     dialog.innerHTML = `<div class="dialog-title"><h2 id="task-editor-title">${task ? 'Edit task' : 'Add task'}</h2><button class="btn icon-button" type="button" data-action="close-task-editor" aria-label="Close task editor">×</button></div>
       <form class="device-body" data-form="save-task" data-id="${esc(task?.id)}">
-        <label>Task<input name="title" value="${esc(task?.title)}" maxlength="200" required autofocus></label>
+        <label>Task<input name="title" value="${esc(task?.title)}" maxlength="200" required autofocus enterkeyhint="next"></label>
         <label>Due date<input name="due" type="date" value="${esc(task?.due ?? (taskScope === 'day' ? date : today))}"></label>
         <div class="actions"><button class="btn primary" type="submit">${task ? 'Save task' : 'Add task'}</button>${task ? `<button class="btn danger-text" type="button" data-action="delete-task" data-id="${esc(task.id)}">Delete task</button>` : ''}</div>
       </form>`;
@@ -236,6 +236,56 @@
   const workoutForms = () => [...$('view').querySelectorAll('[data-form="save-set"], [data-form="save-cardio"]')];
   const formEdited = form => [...form.querySelectorAll('input')].some(input => input.value !== input.defaultValue || input.validity.badInput);
   const assignedWeekdays = data => [...new Set(data.getAll('weekday').map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6))];
+
+  function setExerciseRename(row, editing) {
+    const form = row.querySelector('[data-form="rename-template-exercise"]');
+    form.hidden = !editing;
+    row.classList.toggle('is-renaming', editing);
+    if (editing) {
+      const input = form.elements.namedItem('name');
+      input.focus();
+      input.select();
+    } else {
+      form.reset();
+      row.querySelector('[data-action="edit-template-exercise"]').focus();
+    }
+  }
+
+  async function changeTemplateExercises(message, templateId, update) {
+    const editor = $('view').querySelector('[data-form="save-template"]');
+    const draft = editor?.dataset.id === templateId ? new FormData(editor) : null;
+    const saved = await change(message, next => {
+      const template = next.templates.find(entry => entry.id === templateId);
+      if (template) update(template, next);
+    });
+    const current = $('view').querySelector('[data-form="save-template"]');
+    if (saved && draft && current?.dataset.id === templateId) {
+      current.elements.namedItem('title').value = draft.get('title');
+      const weekdays = assignedWeekdays(draft);
+      for (const checkbox of current.querySelectorAll('input[name="weekday"]')) {
+        checkbox.checked = weekdays.includes(Number(checkbox.value));
+      }
+    }
+    return saved;
+  }
+
+  const isEntryField = field => field instanceof HTMLInputElement
+    && ['text', 'number', 'date', 'email', 'tel', 'url', 'search', 'password'].includes(field.type)
+    && !field.matches(':disabled, [readonly]') && field.getClientRects().length > 0;
+
+  function advanceEntry(event) {
+    const field = event.target;
+    if (event.key !== 'Enter' || event.isComposing || event.repeat || event.defaultPrevented
+      || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !isEntryField(field) || !field.form) return;
+    const workout = field.closest('.exercise-list');
+    const fields = [...(workout ? workout.querySelectorAll('input') : field.form.elements)].filter(isEntryField);
+    const next = fields[fields.indexOf(field) + 1];
+    if (!next && !workout) return;
+    event.preventDefault();
+    if (!field.reportValidity()) return;
+    if (next) next.focus();
+    else field.form.requestSubmit();
+  }
 
   function changeWorkout(message, update, preserveEntriesOnUndo = false) {
     const forms = workoutForms();
@@ -338,7 +388,7 @@
     closeChartPoint();
     const button = event.target.closest('button[data-action]');
     if (!button || button.disabled) return;
-    const {action, id: itemId, index} = button.dataset;
+    const {action, id: itemId, index, exercise: exerciseId} = button.dataset;
     const actionDate = validDate(button.dataset.date) ? button.dataset.date : date;
     switch (action) {
       case 'navigate': {
@@ -367,9 +417,16 @@
       case 'task-today': date = today; return render();
       case 'select-template': templateId = itemId; return render();
       case 'delete-template': return change('Workout day deleted.', (next) => { next.templates = next.templates.filter(template => template.id !== itemId); });
-      case 'delete-template-exercise': return change('Exercise removed from workout day.', (next) => {
-        const template = next.templates.find(entry => entry.id === itemId);
-        if (template) template.exercises = template.exercises.filter(entry => entry.id !== exercise);
+      case 'edit-template-exercise': {
+        const open = $('view').querySelector('.template-exercise.is-renaming');
+        if (open) setExerciseRename(open, false);
+        return setExerciseRename(button.closest('.template-exercise'), true);
+      }
+      case 'cancel-exercise-rename': return setExerciseRename(button.closest('.template-exercise'), false);
+      case 'delete-template-exercise': return changeTemplateExercises('Exercise removed from workout day.', itemId, template => {
+        template.exercises = template.exercises.filter(entry => entry.id !== exerciseId);
+      }).then(saved => {
+        if (saved) $('view').querySelector('[data-form="add-template-exercise"] input')?.focus();
       });
       case 'select-run-type':
         runTypeId = itemId;
@@ -455,7 +512,7 @@
 
   document.addEventListener('submit', async (event) => {
     const form = event.target;
-    const {form: action, id: itemId} = form.dataset;
+    const {form: action, id: itemId, exercise: exerciseId} = form.dataset;
     if (!action) return;
     event.preventDefault();
     const data = new FormData(form);
@@ -497,8 +554,33 @@
       }
       case 'add-template-exercise': {
         const name = get('name');
-        if (!name) return;
-        return change('Exercise added to workout day.', (next) => next.templates.find(entry => entry.id === itemId)?.exercises.push({id: id(), name}));
+        if (!name) return notify('Enter an exercise name.');
+        const saved = await changeTemplateExercises('Exercise added to workout day.', itemId, template => template.exercises.push({id: id(), name}));
+        if (saved) $('view').querySelector('[data-form="add-template-exercise"] input')?.focus();
+        return;
+      }
+      case 'rename-template-exercise': {
+        const name = get('name');
+        if (!name) return notify('Enter an exercise name.');
+        const saved = await changeTemplateExercises('Exercise renamed.', itemId, (template, next) => {
+          const exercise = template.exercises.find(entry => entry.id === exerciseId);
+          if (!exercise) return;
+          exercise.name = name;
+          for (const day of Object.values(next.days)) {
+            for (const entry of day.workout?.exercises || []) {
+              if (entry.id === exerciseId) entry.name = name;
+            }
+          }
+        });
+        if (saved) {
+          const edit = [...$('view').querySelectorAll('[data-action="edit-template-exercise"]')].find(button => button.dataset.id === itemId && button.dataset.exercise === exerciseId);
+          if (edit) {
+            const row = edit.closest('.template-exercise');
+            if (row.classList.contains('is-renaming')) setExerciseRename(row, false);
+            else edit.focus();
+          }
+        }
+        return;
       }
       case 'save-run-type': {
         const title = get('title');
@@ -528,7 +610,12 @@
   });
 
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeChartPoint();
+    if (event.key === 'Escape') {
+      closeChartPoint();
+      const rename = event.target.closest?.('.template-exercise.is-renaming');
+      if (rename) setExerciseRename(rename, false);
+    }
+    advanceEntry(event);
     if ((!event.metaKey && !event.ctrlKey) || event.altKey || event.target.closest?.('input, textarea, select, [contenteditable]')) return;
     const char = event.key.toLowerCase();
     if (char === 'z' || char === 'y') {
