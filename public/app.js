@@ -88,6 +88,9 @@
     const focusRegion = focused?.closest('#sidebar, #mobile-nav, #topbar, #heading, #view');
     const focusData = focused?.matches('button[data-action]') ? Object.entries(focused.dataset) : null;
     const completedOpen = $('view').querySelector('.planner-completed')?.open;
+    const previousWeek = $('view').querySelector('.planner-schedule.is-week');
+    const previousWeekDate = previousWeek?.querySelector('.schedule-day.is-selected [data-action="select-date"]')?.dataset.date;
+    const previousWeekScroll = previousWeek?.scrollLeft;
     const nav = Object.entries(sections).map(([name, label]) => `<button class="nav-button" type="button" data-action="navigate" data-section="${name}"${section === name ? ' aria-current="page"' : ''}>${icon(name)}<span>${label}</span></button>`).join('');
     $('sidebar').innerHTML = `${brand()}<nav aria-label="Main navigation">${nav}</nav><div class="sidebar-bottom"><button class="nav-button" type="button" data-action="devices">${icon('devices')} Devices</button><small>${sync.code ? 'Shared on Wi‑Fi' : 'Saved on this device'}</small></div>`;
     $('mobile-nav').innerHTML = nav;
@@ -97,8 +100,14 @@
     $('view').innerHTML = window.DaymarkViews[section](ctx);
     const completed = $('view').querySelector('.planner-completed');
     if (completed && completedOpen) completed.open = true;
+    const week = $('view').querySelector('.planner-schedule.is-week');
+    if (week) {
+      const selected = week.querySelector('.schedule-day.is-selected');
+      week.scrollLeft = date === previousWeekDate ? previousWeekScroll : selected.offsetLeft;
+      if (focused === previousWeek) week.focus({preventScroll: true});
+    }
     if (focusRegion && focusData) {
-      const replacement = Array.from(focusRegion.querySelectorAll('button[data-action]')).find(button => !button.disabled && focusData.every(([key, value]) => button.dataset[key] === value));
+      const replacement = Array.from(focusRegion.querySelectorAll('button[data-action]')).find(button => !button.disabled && button.getClientRects().length && focusData.every(([key, value]) => button.dataset[key] === value));
       const fallback = focusRegion === $('view') && (completed?.querySelector('summary') || focusRegion.querySelector('[data-action="calendar-view"][aria-pressed="true"]'));
       (replacement || fallback)?.focus?.({preventScroll: true});
     }

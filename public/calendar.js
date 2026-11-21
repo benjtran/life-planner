@@ -89,10 +89,11 @@
   }
 
   function schedule(ctx, dates) {
-    return `<div class="planner-schedule${dates.length === 1 ? ' is-day' : ' is-week'}" aria-label="${dates.length === 1 ? 'Daily schedule' : 'Weekly schedule'}">${dates.map(date => {
+    const singleDay = dates.length === 1;
+    return `<div class="planner-schedule ${singleDay ? 'is-day' : 'is-week'}" role="region" aria-label="${singleDay ? 'Daily schedule' : 'Weekly schedule'}"${singleDay ? '' : ' tabindex="0"'}>${dates.map(date => {
       const selected = date === ctx.date;
       return `<article class="schedule-day${selected ? ' is-selected' : ''}">
-        <header class="schedule-date"><h3>${dates.length === 1 ? ctx.esc(fullDate(date)) : `<button data-action="select-date" data-date="${date}" type="button" aria-pressed="${selected}" ${date === ctx.today ? 'aria-current="date"' : ''}>${ctx.esc(format(date, {weekday: 'short'}))} <span>${dateObj(date).getDate()}</span></button>`}</h3>${dates.length === 1 ? workoutLink(date) : ''}</header>
+        <header class="schedule-date"><h3>${singleDay ? ctx.esc(fullDate(date)) : `<button data-action="select-date" data-date="${date}" type="button" aria-pressed="${selected}" ${date === ctx.today ? 'aria-current="date"' : ''}>${ctx.esc(format(date, {weekday: 'short'}))} <span>${dateObj(date).getDate()}</span></button>`}</h3>${singleDay ? workoutLink(date) : ''}</header>
         <div class="schedule-entries">${dayEntries(ctx, date)}</div>
       </article>`;
     }).join('')}</div>`;
