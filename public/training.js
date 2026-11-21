@@ -3,7 +3,6 @@
   const views = window.DaymarkViews = window.DaymarkViews || {};
   const value = x => x == null ? '' : String(x);
   const num = x => x == null || x === '' || !Number.isFinite(Number(x)) ? null : Number(x);
-  const prettyNum = x => x == null ? '—' : String(x);
 
   function workoutView(ctx) {
     const {date, today, esc} = ctx;
@@ -102,48 +101,139 @@
     </div>`;
   };
 
-  const progressView = function (ctx) {
-    const {state, esc, pretty} = ctx;
+  const progressMetrics = {weight: 'Weight', reps: 'Reps'};
+  const averageNumber = new Intl.NumberFormat('en', {maximumFractionDigits: 2});
+  const axisNumber = new Intl.NumberFormat('en', {maximumSignificantDigits: 12});
+  const shortProgressDate = new Intl.DateTimeFormat('en', {month: 'short', day: 'numeric'});
+  const displayAverage = number => number === null ? '—' : averageNumber.format(number);
+
+  function progressExercises(days) {
     const groups = new Map();
-    Object.entries(state.days || {}).sort(([a], [b]) => a.localeCompare(b)).forEach(([date, day]) => {
-      ((day.workout || {}).exercises || []).forEach(ex => {
-        const name = value(ex.name).trim();
-        if (!name || ex.kind === 'cardio') return;
+    for (const [date, day] of Object.entries(days).sort(([a], [b]) => a.localeCompare(b))) {
+      for (const exercise of day.workout?.exercises || []) {
+        const name = value(exercise.name).trim();
+        if (!name || exercise.kind === 'cardio') continue;
         const key = name.toLocaleLowerCase();
         if (!groups.has(key)) groups.set(key, {name, dates: new Map()});
-        const group = groups.get(key);
-        if (!group.dates.has(date)) group.dates.set(date, []);
-        (ex.sets || []).forEach(set => group.dates.get(date).push(set));
-      });
-    });
-    const options = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
-    const recent = options.slice().sort((a, b) => {
-      const latest = group => Array.from(group.dates).filter(([, sets]) => sets.some(set => num(set.weight) !== null || num(set.reps) !== null)).map(([date]) => date).sort().at(-1) || '';
-      return latest(b).localeCompare(latest(a));
-    });
-    const selected = groups.get(value(ctx.progressExercise).trim().toLocaleLowerCase()) || recent[0];
-    const records = selected ? Array.from(selected.dates, ([date, sets]) => {
-      const weights = sets.map(s => num(s.weight)).filter(n => n !== null);
-      const reps = sets.map(s => num(s.reps)).filter(n => n !== null);
-      return {date, weight: weights.length ? Math.max(...weights) : null, reps: reps.length ? Math.max(...reps) : null, sets: sets.filter(set => num(set.weight) !== null || num(set.reps) !== null)};
-    }).filter(record => record.sets.length) : [];
-    const chart = (key, label, color) => {
-      const points = records.filter(r => r[key] !== null);
-      if (!points.length) return `<div class="chart-empty">No ${label.toLowerCase()} logged yet.</div>`;
-      const max = Math.ceil(Math.max(1, ...points.map(r => r[key])) / 2) * 2;
-      const timestamp = (date) => Date.parse(`${date}T00:00:00Z`);
-      const start = timestamp(points[0].date);
-      const end = timestamp(points.at(-1).date);
-      const x = date => start === end ? 315 : 48 + (timestamp(date) - start) * 522 / (end - start);
-      const y = v => 150 - (v / max) * 115;
-      const coords = points.map(p => `${x(p.date)},${y(p[key])}`).join(' ');
-      const ticks = [0, max / 2, max].map(tick => `<line x1="48" y1="${y(tick)}" x2="570" y2="${y(tick)}" class="chart-grid"/><text x="39" y="${y(tick) + 5}" text-anchor="end" fill="var(--muted)" font-size="16">${tick}</text>`).join('');
-      return `<svg class="progress-chart" viewBox="0 0 600 175" role="img" aria-label="${label} over ${points.length} recorded ${points.length === 1 ? 'day' : 'days'}">${ticks}<polyline points="${coords}" fill="none" stroke="${color}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>${points.map(p => `<circle cx="${x(p.date)}" cy="${y(p[key])}" r="6" fill="${color}"><title>${esc(pretty(p.date))}: ${p[key]}</title></circle>`).join('')}</svg><div class="chart-dates"><span>${esc(pretty(points[0].date))}</span><span>${points.length > 1 ? esc(pretty(points.at(-1).date)) : ''}</span></div>`;
+        const dates = groups.get(key).dates;
+        if (!dates.has(date)) dates.set(date, []);
+        dates.get(date).push(...(exercise.sets || []));
+      }
+    }
+    return [...groups.values()].flatMap(({name, dates}) => {
+      const records = [];
+      for (const [date, entries] of dates) {
+        const sets = entries.map((set, index) => ({index: index + 1, weight: num(set.weight), reps: num(set.reps)}))
+          .filter(set => set.weight !== null || set.reps !== null);
+        if (sets.length) records.push({date, sets});
+      }
+      return records.length ? [{name, records}] : [];
+    }).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  function averageFor(sets, metric) {
+    const measured = sets.filter(set => set[metric] !== null);
+    return measured.length ? measured.reduce((sum, set) => sum + set[metric] / measured.length, 0) : null;
+  }
+
+  function progressAxis(values) {
+    const min = values.reduce((lowest, n) => Math.min(lowest, n), Infinity);
+    const max = values.reduce((highest, n) => Math.max(highest, n), -Infinity);
+    const pad = max === min ? Math.max(Math.abs(max) * .05, 1) : (max - min) * .08;
+    const bottom = min >= 0 ? Math.max(0, min - pad) : min - pad;
+    const top = max + pad;
+    const rawStep = (top - bottom) / 8;
+    const power = 10 ** Math.floor(Math.log10(rawStep));
+    const step = power * [1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find(n => n * power >= rawStep);
+    const first = Math.floor(bottom / step);
+    const last = Math.ceil(top / step);
+    const ticks = Array.from({length: last - first + 1}, (_, index) => (first + index) * step);
+    return {ticks, y: n => (1 - (n / step - first) / (last - first)) * 100};
+  }
+
+  function progressChart(ctx, selection, metric) {
+    const {esc, pretty} = ctx;
+    const {name, records} = selection;
+    const sessions = records.map(record => ({date: record.date, sets: record.sets.filter(set => set[metric] !== null), mean: averageFor(record.sets, metric)}));
+    const values = sessions.flatMap(day => day.sets.map(set => set[metric]));
+    if (!values.length) return `<p class="chart-empty">No ${progressMetrics[metric].toLowerCase()} logged for ${esc(name)}.</p>`;
+
+    const {ticks, y} = progressAxis(values);
+    const step = 100 / sessions.length;
+    const trend = sessions.flatMap((day, index) => day.mean === null ? [] : [`${(index + .5) * step},${y(day.mean)}`]).join(' ');
+    const slotWidth = Math.max(86, ...records.map(day => day.sets.length * 18 + 40));
+    const otherMetric = metric === 'weight' ? 'reps' : 'weight';
+    const point = (date, label, number, mean, offset = 0, set = null) => {
+      const dateLabel = pretty(date);
+      const readings = [`${progressMetrics[metric]} ${mean ? displayAverage(number) : number}`];
+      if (set && set[otherMetric] !== null) readings.push(`${progressMetrics[otherMetric]} ${set[otherMetric]}`);
+      const metricValue = readings.join(' · ');
+      return `<button type="button" class="chart-point ${mean ? 'chart-point-mean' : 'chart-point-set'}"
+        style="--point-y:${y(number)}%; --point-offset:${offset}px" data-chart-point data-point-date="${esc(dateLabel)}"
+        data-point-label="${label}" data-point-value="${esc(metricValue)}"
+        aria-label="${esc(`${dateLabel}, ${label}, ${metricValue}`)}"></button>`;
     };
-    const latest = records.slice().reverse().find(r => r.weight !== null || r.reps !== null);
-    return `<div class="progress-view"><div class="progress-intro"><h2>Progress</h2>${options.length ? `<label class="progress-selector">Exercise<select data-change="progress-exercise">${options.map(o => `<option value="${esc(o.name)}"${o === selected ? ' selected' : ''}>${esc(o.name)}</option>`).join('')}</select></label>` : ''}</div>
-      ${!selected ? '<div class="training-empty progress-empty"><h2>No progress yet</h2><p>Log sets for a strength exercise to see your progress.</p></div>' : `<div class="progress-summary"><div><span>TRACKING</span><strong>${esc(selected.name)}</strong></div><div><span>SESSIONS</span><strong>${records.length}</strong></div><div><span>LATEST MAX WEIGHT</span><strong>${latest ? prettyNum(latest.weight) : '—'}</strong></div><div><span>LATEST MAX REPS</span><strong>${latest ? prettyNum(latest.reps) : '—'}</strong></div></div><div class="chart-grid-wrap"><article class="panel chart-card"><div class="chart-title"><h2>Max weight</h2><span>PER SESSION</span></div>${chart('weight', 'Max weight', '#bd6248')}</article><article class="panel chart-card"><div class="chart-title"><h2>Max reps</h2><span>PER SESSION</span></div>${chart('reps', 'Max reps', '#617c6b')}</article></div><div class="history-heading"><h2>Session history</h2><span>MAXIMUMS PER DAY</span></div><div class="history-table-wrap"><table class="history-table"><thead><tr><th>Date</th><th>Sets logged</th><th>Max weight</th><th>Max reps</th></tr></thead><tbody>${records.slice().reverse().map(r => `<tr><td>${esc(pretty(r.date))}</td><td>${r.sets.length}</td><td>${prettyNum(r.weight)}</td><td>${prettyNum(r.reps)}</td></tr>`).join('')}</tbody></table></div><p class="history-note">Maximum weight and reps may come from different sets. A dash means no value was logged.</p>`}</div>`;
-  };
+
+    return `<div class="chart-frame">
+      <div class="chart-axis" aria-hidden="true"><div class="chart-axis-scale">${ticks.map(tick => `<span style="--tick:${y(tick)}%">${axisNumber.format(tick)}</span>`).join('')}</div></div>
+      <div class="chart-scroll" data-chart-exercise="${esc(name)}" tabindex="0" role="region" aria-label="Workout dates">
+        <div class="chart-plot" style="--chart-min-width:${sessions.length * slotWidth}px">
+          <div class="chart-gridlines" aria-hidden="true">${ticks.map(tick => `<i style="--tick:${y(tick)}%"></i>`).join('')}</div>
+          <svg class="chart-trend" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="${trend}" vector-effect="non-scaling-stroke"/></svg>
+          <div class="chart-sessions">
+            ${sessions.map(({date, sets, mean}) => `<div class="chart-session">
+              <div class="chart-session-plot">
+                ${mean !== null ? point(date, `Daily average · ${sets.length} ${sets.length === 1 ? 'set' : 'sets'}`, mean, true) : ''}
+                ${sets.map((set, index) => point(date, `Set ${set.index}`, set[metric], false, (index % 2 === 0 ? -1 : 1) * (13 + 18 * Math.floor(index / 2)), set)).join('')}
+              </div>
+              <time class="chart-date" datetime="${esc(date)}">${esc(shortProgressDate.format(new Date(`${date}T12:00:00`)))}<small>${esc(date.slice(0, 4))}</small></time>
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="chart-tooltip" hidden aria-hidden="true"><strong></strong><span></span><b></b></div>
+    </div>`;
+  }
+
+  function progressHistory(ctx, records) {
+    const {esc, pretty} = ctx;
+    return `<section class="progress-history" aria-labelledby="progress-history-title">
+      <h2 id="progress-history-title">Session history</h2>
+      <div class="history-table-wrap"><table class="history-table">
+        <thead><tr><th scope="col">Date</th><th scope="col">Sets</th><th scope="col">Avg. weight</th><th scope="col">Avg. reps</th></tr></thead>
+        <tbody>${records.slice().reverse().map(({date, sets}) => `<tr>
+          <th scope="row">${esc(pretty(date))}</th>
+          <td><details><summary aria-label="${esc(`View ${sets.length} ${sets.length === 1 ? 'set' : 'sets'} on ${pretty(date)}`)}">${sets.length} ${sets.length === 1 ? 'set' : 'sets'}</summary>
+            <ul class="history-sets" role="list">${sets.map(set => `<li><strong>Set ${set.index}</strong><span>${set.weight === null ? 'Weight —' : `Weight ${set.weight}`}</span><span>${set.reps === null ? 'Reps —' : `Reps ${set.reps}`}</span></li>`).join('')}</ul>
+          </details></td>
+          <td>${displayAverage(averageFor(sets, 'weight'))}</td><td>${displayAverage(averageFor(sets, 'reps'))}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </section>`;
+  }
+
+  function progressView(ctx) {
+    const {esc} = ctx;
+    const options = progressExercises(ctx.state.days || {});
+    const selected = options.find(option => option.name.toLocaleLowerCase() === ctx.progressExercise.toLocaleLowerCase())
+      || options.reduce((latest, option) => !latest || option.records.at(-1).date > latest.records.at(-1).date ? option : latest, null);
+    if (!selected) return '<div class="training-empty"><h2>No progress yet</h2><p>Log sets for a strength exercise to see your progress.</p></div>';
+
+    const metric = ctx.progressMetric || (selected.records.some(day => day.sets.some(set => set.weight !== null)) ? 'weight' : 'reps');
+    return `<div class="progress-view">
+      <div class="progress-intro"><h2>Progress</h2><label class="progress-selector">Exercise<select data-change="progress-exercise">${options.map(option => `<option value="${esc(option.name)}"${option === selected ? ' selected' : ''}>${esc(option.name)}</option>`).join('')}</select></label></div>
+      <article class="panel chart-card" aria-labelledby="progress-chart-title">
+        <div class="chart-heading">
+          <h3 id="progress-chart-title">${esc(selected.name)}</h3>
+          <div class="segmented" role="group" aria-label="Chart metric">${Object.entries(progressMetrics).map(([key, label]) => `<button type="button" data-action="progress-metric" data-metric="${key}" aria-pressed="${metric === key}">${label}</button>`).join('')}</div>
+        </div>
+        <div class="chart-legend"><span><i class="legend-mean"></i>Daily average</span><span><i class="legend-set"></i>Individual sets</span></div>
+        ${progressChart(ctx, selected, metric)}
+        <p class="history-note">Each daily average uses the sets with a ${progressMetrics[metric].toLowerCase()} value recorded that day.</p>
+      </article>
+      ${progressHistory(ctx, selected.records)}
+    </div>`;
+  }
 
   views.training = function (ctx) {
     const active = ['templates', 'workout', 'running', 'progress'].includes(ctx.trainingView) ? ctx.trainingView : 'workout';

@@ -63,6 +63,9 @@
   let workoutDate = today;
   let view = 'month';
   let progressExercise = '';
+  let progressMetric = '';
+  let chartPoint = null;
+  let chartPointPinned = false;
   let taskFilter = 'all';
   let taskScope = 'day';
   let trainingView = 'workout';
@@ -94,6 +97,11 @@
     const previousWeek = $('view').querySelector('.planner-schedule.is-week');
     const previousWeekDate = previousWeek?.querySelector('.schedule-day.is-selected [data-action="select-date"]')?.dataset.date;
     const previousWeekScroll = previousWeek?.scrollLeft;
+    const previousChart = $('view').querySelector('.chart-scroll');
+    const chartExercise = previousChart?.dataset.chartExercise;
+    const chartScroll = previousChart?.scrollLeft;
+    const chartAtEnd = previousChart && previousChart.scrollWidth - previousChart.clientWidth - chartScroll < 2;
+    closeChartPoint();
     const nav = Object.entries(sections).map(([name, label]) => `<button class="nav-button" type="button" data-action="navigate" data-section="${name}"${section === name ? ' aria-current="page"' : ''}>${icon(name)}<span>${label}</span></button>`).join('');
     const storageLabel = hosted ? (revision < 0 ? 'Connecting…' : 'Synced to your account') : sync.url || (sync.code && !sync.host) ? 'Shared on Wi‑Fi' : 'Saved on this computer';
     $('sidebar').innerHTML = `${brand()}<nav aria-label="Main navigation">${nav}</nav><div class="sidebar-bottom"><button class="nav-button" type="button" data-action="devices">${icon('devices')} Devices</button><small>${storageLabel}</small></div>`;
@@ -102,8 +110,10 @@
     $('heading').innerHTML = section === 'training' ? '' : `<div class="page-heading"><h1>${sections[section]}</h1>${section === 'tasks' ? `<button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button>` : ''}</div>`;
     const weekStart = mondayOf(date);
     const allItems = section === 'tasks' && taskScope === 'all' ? [...state.tasks.map(manualTask), ...Array.from({length: 7}, (_, offset) => activitiesFor(state, addDays(weekStart, offset))).flat()] : [];
-    const ctx = {state, date: section === 'training' ? workoutDate : date, today, view, esc, pretty, addDays, taskTone, taskFilter, taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, progressExercise, workoutFor: value => workoutFor(state, value)};
+    const ctx = {state, date: section === 'training' ? workoutDate : date, today, view, esc, pretty, addDays, taskTone, taskFilter, taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, progressExercise, progressMetric, workoutFor: value => workoutFor(state, value)};
     $('view').innerHTML = window.DaymarkViews[section](ctx);
+    const chart = $('view').querySelector('.chart-scroll');
+    if (chart) chart.scrollLeft = chart.dataset.chartExercise === chartExercise && !chartAtEnd ? chartScroll : chart.scrollWidth;
     const week = $('view').querySelector('.planner-schedule.is-week');
     if (week) {
       const selected = week.querySelector('.schedule-day.is-selected');
@@ -287,7 +297,68 @@
     $('view').querySelector('[data-form="save-template"] input[name="title"]')?.focus();
   }
 
+  function closeChartPoint() {
+    if (!chartPoint) return;
+    chartPoint.classList.remove('is-inspected');
+    chartPoint.closest('.chart-frame').querySelector('.chart-tooltip').hidden = true;
+    chartPoint = null;
+    chartPointPinned = false;
+  }
+
+  function positionChartTooltip() {
+    if (!chartPoint) return;
+    const anchor = chartPoint.getBoundingClientRect();
+    const scroller = chartPoint.closest('.chart-scroll').getBoundingClientRect();
+    const center = anchor.left + anchor.width / 2;
+    if (center < scroller.left || center > scroller.right || anchor.bottom < 0 || anchor.top > innerHeight) {
+      closeChartPoint();
+      return;
+    }
+    const tooltip = chartPoint.closest('.chart-frame').querySelector('.chart-tooltip');
+    tooltip.style.left = `${Math.max(8, Math.min(center - tooltip.offsetWidth / 2, innerWidth - tooltip.offsetWidth - 8))}px`;
+    const above = anchor.top - tooltip.offsetHeight - 6;
+    tooltip.style.top = `${above >= 8 ? above : Math.min(anchor.bottom + 6, innerHeight - tooltip.offsetHeight - 8)}px`;
+  }
+
+  function showChartPoint(point, pinned = false) {
+    closeChartPoint();
+    chartPoint = point;
+    chartPointPinned = pinned;
+    point.classList.add('is-inspected');
+    const tooltip = point.closest('.chart-frame').querySelector('.chart-tooltip');
+    const {pointDate, pointLabel, pointValue} = point.dataset;
+    const [date, label, value] = tooltip.children;
+    date.textContent = pointDate;
+    label.textContent = pointLabel;
+    value.textContent = pointValue;
+    tooltip.hidden = false;
+    positionChartTooltip();
+  }
+
+  $('view').addEventListener('pointerover', (event) => {
+    const point = event.target.closest('[data-chart-point]');
+    if (point && point !== chartPoint && event.pointerType !== 'touch') showChartPoint(point);
+  });
+  $('view').addEventListener('pointerout', (event) => {
+    if (chartPoint === event.target && !chartPointPinned && chartPoint !== document.activeElement) closeChartPoint();
+  });
+  $('view').addEventListener('focusin', (event) => {
+    if (event.target.matches('[data-chart-point]') && event.target !== chartPoint) showChartPoint(event.target);
+  });
+  $('view').addEventListener('focusout', (event) => {
+    if (chartPoint === event.target) closeChartPoint();
+  });
+  window.addEventListener('scroll', positionChartTooltip, {capture: true, passive: true});
+  window.addEventListener('resize', positionChartTooltip);
+
   document.addEventListener('click', (event) => {
+    const point = event.target.closest('[data-chart-point]');
+    if (point) {
+      if (point === chartPoint && chartPointPinned) closeChartPoint();
+      else showChartPoint(point, true);
+      return;
+    }
+    closeChartPoint();
     const button = event.target.closest('button[data-action]');
     if (!button || button.disabled) return;
     const {action, id: itemId, index} = button.dataset;
@@ -363,6 +434,7 @@
       }
       case 'delete-set': return changeWorkout('Set deleted.', (workout) => workout.exercises.find(entry => entry.id === itemId)?.sets.splice(Number(index), 1), true);
       case 'save-workout-progress': return saveWorkoutProgress();
+      case 'progress-metric': progressMetric = button.dataset.metric; return render();
       case 'finish-workout': {
         const session = workoutDate;
         return Promise.resolve(changeWorkout('Workout completed.', (_, next) => {
@@ -479,6 +551,7 @@
   });
 
   document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeChartPoint();
     if ((!event.metaKey && !event.ctrlKey) || event.altKey || event.target.closest?.('input, textarea, select, [contenteditable]')) return;
     const char = event.key.toLowerCase();
     if (char === 'z' || char === 'y') {

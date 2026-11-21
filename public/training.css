@@ -1,4 +1,4 @@
-.training-view,.progress-view{max-width:1320px;margin:auto}.training-view h1,.progress-view h1{font-size:clamp(2.4rem,5vw,4.5rem);letter-spacing:-.055em;line-height:1;margin:.35rem 0 .8rem}.training-view h2,.progress-view h2{font-size:1.5rem;letter-spacing:-.035em;margin:.35rem 0}.training-view p,.progress-view p{line-height:1.5}.training-view .eyebrow,.progress-view .eyebrow{font-size:.68rem;letter-spacing:.15em;font-weight:800;color:var(--accent);margin:0}.progress-intro{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:44px}.progress-intro p:last-child{margin:0}.progress-selector{display:grid;gap:7px;font-size:.65rem;letter-spacing:.13em;font-weight:800;color:var(--muted)}.progress-selector select{min-width:190px}.section-heading,.history-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:18px}.exercise-count,.history-heading>span,.chart-title>span{font-size:.65rem;letter-spacing:.1em;color:var(--muted);font-weight:700}.training-view label{font-size:.75rem;font-weight:700;display:grid;gap:8px}.training-view input,.training-view select,.progress-view select{box-sizing:border-box;width:100%;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--panel);color:var(--ink);font:inherit;min-width:0}.training-view input:focus,.training-view select:focus,.progress-view select:focus{outline:2px solid var(--accent);outline-offset:2px}.icon-action,.text-action{border:0;background:none;cursor:pointer;font:inherit}.icon-action{font-size:1.4rem;color:var(--muted);line-height:1;padding:4px}.text-action{font-size:.75rem;font-weight:800;color:var(--accent);padding:8px 0}.training-empty{text-align:center;padding:55px 20px;border:1px dashed var(--line);border-radius:var(--radius);color:var(--muted)}.training-empty h3,.training-empty h2{color:var(--ink);margin:.9rem 0 .3rem}.training-empty p{margin:0;font-size:.85rem}.empty-icon{display:inline-grid;place-items:center;width:45px;height:45px;background:var(--soft);border-radius:50%;color:var(--accent);font-size:1.3rem}.progress-summary{display:grid;grid-template-columns:2fr repeat(3,1fr);border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);margin-bottom:22px}.progress-summary>div{padding:22px;border-right:1px solid var(--line);display:grid;gap:9px}.progress-summary>div:last-child{border:0}.progress-summary span{font-size:.62rem;letter-spacing:.1em;font-weight:800;color:var(--muted)}.progress-summary strong{font-size:1.4rem;letter-spacing:-.03em}.chart-grid-wrap{display:grid;grid-template-columns:1fr 1fr;gap:18px}.chart-card{padding:22px;min-width:0}.chart-title{display:flex;align-items:start;justify-content:space-between;gap:10px}.chart-title h2{margin-bottom:0}.progress-chart{display:block;width:100%;height:auto;margin-top:12px;overflow:visible}.chart-grid{stroke:var(--line);stroke-width:1}.chart-dates{display:flex;justify-content:space-between;font-size:.67rem;color:var(--muted)}.chart-empty{height:180px;display:grid;place-items:center;color:var(--muted);font-size:.85rem}.history-heading{margin-top:42px}.history-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel)}.history-table{border-collapse:collapse;width:100%;text-align:left;min-width:480px}.history-table th,.history-table td{padding:16px 20px;border-bottom:1px solid var(--line)}.history-table th{font-size:.65rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}.history-table td{font-size:.85rem}.history-table tr:last-child td{border-bottom:0}.history-note{font-size:.75rem;color:var(--muted)}.progress-empty{margin-top:30px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:850px){.progress-summary{grid-template-columns:1fr 1fr}.progress-summary>div:nth-child(2){border-right:0}.progress-summary>div:nth-child(-n+2){border-bottom:1px solid var(--line)}}@media(max-width:600px){.progress-intro{align-items:start;flex-direction:column;margin-bottom:30px}.progress-selector{width:100%}.chart-grid-wrap{grid-template-columns:1fr}.progress-summary>div{padding:16px}.progress-summary strong{font-size:1.1rem}.history-heading>span{display:none}}
+.training-view,.progress-view{max-width:1320px;margin:auto}.training-view h1,.progress-view h1{font-size:clamp(2.4rem,5vw,4.5rem);letter-spacing:-.055em;line-height:1;margin:.35rem 0 .8rem}.training-view h2,.progress-view h2{font-size:1.5rem;letter-spacing:-.035em;margin:.35rem 0}.training-view p,.progress-view p{line-height:1.5}.training-view .eyebrow,.progress-view .eyebrow{font-size:.68rem;letter-spacing:.15em;font-weight:800;color:var(--accent);margin:0}.progress-selector{display:grid;gap:7px;font-size:.65rem;letter-spacing:.13em;font-weight:800;color:var(--muted)}.progress-selector select{min-width:190px}.section-heading,.history-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:18px}.exercise-count,.history-heading>span,.chart-title>span{font-size:.65rem;letter-spacing:.1em;color:var(--muted);font-weight:700}.training-view label{font-size:.75rem;font-weight:700;display:grid;gap:8px}.training-view input,.training-view select,.progress-view select{box-sizing:border-box;width:100%;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--panel);color:var(--ink);font:inherit;min-width:0}.training-view input:focus,.training-view select:focus,.progress-view select:focus{outline:2px solid var(--accent);outline-offset:2px}.icon-action,.text-action{border:0;background:none;cursor:pointer;font:inherit}.icon-action{font-size:1.4rem;color:var(--muted);line-height:1;padding:4px}.text-action{font-size:.75rem;font-weight:800;color:var(--accent);padding:8px 0}.training-empty{text-align:center;padding:55px 20px;border:1px dashed var(--line);border-radius:var(--radius);color:var(--muted)}.training-empty h3,.training-empty h2{color:var(--ink);margin:.9rem 0 .3rem}.training-empty p{margin:0;font-size:.85rem}.empty-icon{display:inline-grid;place-items:center;width:45px;height:45px;background:var(--soft);border-radius:50%;color:var(--accent);font-size:1.3rem}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .training-tabs {
   display: flex;
   gap: 8px;
@@ -73,4 +73,68 @@ body:has(.workout-actions) .toast { bottom: 76px; }
   .workout-actions { bottom: calc(64px + env(safe-area-inset-bottom)); }
   .workout-actions .btn { flex: 1 1 auto; padding-inline: 10px; }
   body:has(.workout-actions) .toast { bottom: calc(134px + env(safe-area-inset-bottom)); }
+}
+
+.progress-intro { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 16px; }
+.progress-intro h2 { margin: 0; }
+.progress-selector { max-width: 100%; }
+.chart-card {
+  --plot-height: clamp(235px, 30vw, 370px);
+  --chart-ink: #245b4d;
+  --chart-set: #81a99c;
+  --chart-inset: 12px;
+  min-width: 0;
+  padding: clamp(12px, 2.6vw, 26px);
+}
+.chart-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 20px; }
+.chart-heading h3 { font-size: clamp(1.1rem, 3vw, 1.45rem); overflow-wrap: anywhere; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 14px 0 12px; color: var(--muted); font-size: .8125rem; }
+.chart-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend-mean { position: relative; display: inline-block; width: 20px; height: 2px; background: var(--chart-ink); }
+.legend-mean::after { position: absolute; inset: -3px auto auto 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--chart-ink); content: ''; }
+.legend-set { display: inline-block; width: 10px; height: 10px; border: 1px solid var(--chart-ink); border-radius: 50%; background: var(--chart-set); }
+.chart-frame { display: grid; grid-template-columns: auto minmax(0, 1fr); min-width: 0; }
+.chart-axis, .chart-scroll { padding-top: var(--chart-inset); }
+.chart-axis { min-width: 2.5rem; border-right: 1px solid var(--line); }
+.chart-axis-scale { display: grid; height: var(--plot-height); }
+.chart-axis-scale span { position: relative; top: var(--tick); grid-area: 1 / 1; align-self: start; transform: translateY(-50%); padding-right: 8px; color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.chart-scroll { min-width: 0; overflow-x: auto; }
+.chart-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.chart-plot { position: relative; min-width: var(--chart-min-width); }
+.chart-gridlines, .chart-trend { position: absolute; inset: 0 0 auto; width: 100%; height: var(--plot-height); pointer-events: none; }
+.chart-gridlines i { position: absolute; top: var(--tick); width: 100%; border-top: 1px solid var(--line); }
+.chart-trend { overflow: visible; z-index: 1; fill: none; stroke: var(--chart-ink); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.chart-sessions { display: flex; }
+.chart-session { flex: 1 1 0; min-width: 0; }
+.chart-session-plot { position: relative; height: var(--plot-height); }
+.chart-session-plot::before { position: absolute; inset: 0 auto 0 50%; border-left: 1px dashed var(--line); content: ''; }
+.chart-date { display: block; padding: 10px 0 5px; color: var(--ink); text-align: center; font-size: .75rem; font-weight: 650; white-space: nowrap; }
+.chart-date small { margin-left: 4px; color: var(--muted); font-size: .6875rem; font-weight: 500; }
+.chart-point { position: absolute; z-index: 2; display: grid; place-items: center; top: var(--point-y); left: calc(50% + var(--point-offset)); width: 22px; height: 22px; transform: translate(-50%, -50%); padding: 0; border: 0; border-radius: 50%; background: transparent; }
+.chart-point::before { width: 9px; height: 9px; border: 1px solid var(--chart-ink); border-radius: 50%; background: var(--chart-set); content: ''; }
+.chart-point-mean { z-index: 3; }
+.chart-point-mean::before { width: 12px; height: 12px; border: 2px solid var(--panel); background: var(--chart-ink); box-shadow: 0 0 0 1px var(--chart-ink); }
+.chart-point.is-inspected::before { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3px var(--chart-ink); }
+.chart-point:focus-visible { outline-offset: 0; }
+.chart-tooltip { position: fixed; z-index: 5; display: grid; gap: 3px; min-width: 124px; max-width: calc(100vw - 16px); padding: 9px 12px; border: 1px solid #2e6453; border-radius: 9px; background: #1a4237; color: #fff; font-size: .8125rem; pointer-events: none; }
+.chart-tooltip span { color: #d3e6dd; font-size: .75rem; }
+.chart-tooltip b { font-size: .95rem; font-variant-numeric: tabular-nums; }
+.chart-empty { margin: 12px 0; padding: 52px 12px; color: var(--muted); text-align: center; }
+.history-note { margin-top: 12px; color: var(--muted); font-size: .8125rem; }
+.progress-history { margin-top: 29px; }
+.progress-history h2 { margin-bottom: 9px; }
+.history-table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.history-table { width: 100%; border-collapse: collapse; color: var(--ink); text-align: left; font-size: .875rem; font-variant-numeric: tabular-nums; }
+.history-table th, .history-table td { padding: 12px clamp(6px, 2vw, 17px); border-bottom: 1px solid var(--line); vertical-align: top; }
+.history-table thead th { background: var(--canvas); color: var(--muted); font-size: .8125rem; }
+.history-table th[scope="row"] { font-weight: 600; }
+.history-table tr:last-child :is(th, td) { border-bottom: 0; }
+.history-table summary { color: var(--accent); cursor: pointer; }
+.history-sets { display: grid; gap: 8px; padding: 0; margin: 8px 0 2px; list-style: none; }
+.history-sets li { display: flex; flex-wrap: wrap; gap: 2px 8px; color: var(--muted); font-size: .8125rem; }
+.history-sets strong { color: var(--ink); }
+
+@media (max-width: 600px) {
+  .progress-selector, .progress-selector select { width: 100%; }
+  .chart-axis { min-width: 2rem; }
 }
