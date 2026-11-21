@@ -42,7 +42,7 @@ a { color: var(--accent); }
 .workspace { margin-left: 220px; min-height: 100vh; outline: none; }
 .topbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 13px clamp(17px, 3vw, 44px); min-height: 66px; border-bottom: 1px solid var(--line); }
 .top-actions { display: flex; align-items: center; gap: 7px; }
-.top-brand, .mobile-devices, .mobile-nav { display: none; }
+.top-brand, .topbar .mobile-devices, .mobile-nav { display: none; }
 .main-inner { max-width: 1530px; padding: 28px clamp(17px, 3vw, 44px) 40px; margin: 0 auto; }
 .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 22px; }
 .page-heading h1, .main-inner .training-view > h1 { font: 590 clamp(2.05rem, 4vw, 3.1rem)/1.09 Georgia, Cambria, serif; letter-spacing: -.045em; }
@@ -77,8 +77,9 @@ select { appearance: none; padding-right: 32px; background-image: url("data:imag
   .workspace { margin-left: 174px; }
 }
 @media (max-width: 660px) {
+  html { scroll-padding-bottom: calc(67px + env(safe-area-inset-bottom)); }
   .sidebar, .tool-text { display: none; }
-  .top-brand, .mobile-devices { display: inline-flex; }
+  .top-brand, .topbar .mobile-devices { display: inline-flex; }
   .top-brand { color: var(--ink); padding: 0; font-size: 1.22rem; gap: 8px; }
   .top-brand .brand-mark { width: 29px; height: 29px; border-radius: 9px; }
   .top-brand svg { width: 18px; height: 18px; }
