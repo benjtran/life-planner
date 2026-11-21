@@ -63,7 +63,7 @@
     plus: '<path d="M12 5v14M5 12h14"/>'
   };
   const icon = (name) => `<svg class="icon" aria-hidden="true" viewBox="0 0 24 24">${icons[name]}</svg>`;
-  const brand = (extra = '') => `<div class="brand ${extra}"><span class="brand-mark">${icon('mark')}</span>Daymark</div>`;
+  const brand = (extra = '') => `<div class="brand ${extra}"><span class="brand-mark">${icon('mark')}</span>LifeSolver</div>`;
   const manualTask = task => ({...task, kind: 'task'});
   const itemsFor = (value) => [...state.tasks.filter(task => task.due === value).map(manualTask), ...activitiesFor(state, value)];
 
@@ -119,7 +119,7 @@
 
   async function useState(next, nextPast, nextFuture, message, undoable = true) {
     next = withDefaults(next);
-    if (hosted && revision < 0) { notify('Daymark is still connecting. Try again in a moment.'); return false; }
+    if (hosted && revision < 0) { notify('LifeSolver is still connecting. Try again in a moment.'); return false; }
     if (sync.busy) { notify('A change is still saving. Try again in a moment.'); return false; }
     if (JSON.stringify(next) === JSON.stringify(state)) { notify(message); return true; }
     if (hosted || sync.code) {
@@ -193,7 +193,7 @@
   function devices(message = '') {
     const dialog = $('devices');
     const hostDetails = sync.url ? `<p>On your iPhone, open Safari and visit <a href="${esc(sync.url)}">${esc(sync.url)}</a> on the same Wi‑Fi.</p><p>Pairing code <code>${esc(sync.code)}</code></p><p class="sync-label">Use a trusted network and keep this computer and the launcher running.</p>` : `<p>Run the launcher with <code>--lan</code> to connect your iPhone over the same Wi‑Fi.</p>`;
-    const hostedDetails = '<p>On iPhone, open this address in Safari. In the Share menu, choose Add to Home Screen and turn on Open as Web App.</p><p>Sign in to the same account on each device.</p>';
+    const hostedDetails = '<p>On iPhone, open this address in Safari. In the Share menu, choose Add to Home Screen and turn on Open as Web App.</p><p>Sign in to your account on each device you use.</p><div class="actions"><a class="btn" href="/signout-with-chatgpt?return_to=%2F" target="_top">Sign out on this device</a></div>';
     dialog.innerHTML = `<div class="dialog-title"><h2 id="device-title">Your devices</h2><button class="btn icon-button" type="button" data-action="close-devices" aria-label="Close devices">×</button></div><div class="device-body">${hosted ? hostedDetails : sync.host ? hostDetails : sync.code ? '<p>This device is paired. Changes save to your computer.</p>' : sync.available ? '<p>Enter the pairing code shown under Devices on your computer.</p><form data-form="pair"><label>Pairing code<input name="code" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" minlength="6" maxlength="6" required></label><button class="btn primary" type="submit">Connect</button></form>' : '<p>The planner saves to this browser. Open it through the launcher to use it across devices.</p>'}${message ? `<p role="alert">${esc(message)}</p>` : ''}<div class="actions"><button type="button" class="btn" data-action="start-empty">Clear planner</button></div></div>`;
     if (!dialog.open) dialog.showModal();
   }

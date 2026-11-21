@@ -47,7 +47,7 @@ test('planner serves the app, requires a code, and persists only current revisio
   assert.match(String(ready), /Computer:/);
 
   const base = `http://127.0.0.1:${port}/`;
-  assert.match(await (await fetch(base)).text(), /Daymark/);
+  assert.match(await (await fetch(base)).text(), /LifeSolver/);
   const asset = await fetch(`${base}app.js`);
   assert.equal(asset.status, 200);
   await asset.text();
