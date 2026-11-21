@@ -1,6 +1,6 @@
 {
-  "name": "LifeSolver",
-  "short_name": "LifeSolver",
+  "name": "lifesolver",
+  "short_name": "lifesolver",
   "description": "Your calendar, tasks, workouts, and runs.",
   "id": "./",
   "start_url": "./",

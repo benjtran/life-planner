@@ -63,7 +63,7 @@
     plus: '<path d="M12 5v14M5 12h14"/>'
   };
   const icon = (name) => `<svg class="icon" aria-hidden="true" viewBox="0 0 24 24">${icons[name]}</svg>`;
-  const brand = (extra = '') => `<div class="brand ${extra}"><span class="brand-mark">${icon('mark')}</span>LifeSolver</div>`;
+  const brand = (extra = '') => `<div class="brand ${extra}"><span class="brand-mark">${icon('mark')}</span>lifesolver</div>`;
   const manualTask = task => ({...task, kind: 'task'});
   const itemsFor = (value) => [...state.tasks.filter(task => task.due === value).map(manualTask), ...activitiesFor(state, value)];
 
@@ -119,7 +119,7 @@
 
   async function useState(next, nextPast, nextFuture, message, undoable = true) {
     next = withDefaults(next);
-    if (hosted && revision < 0) { notify('LifeSolver is still connecting. Try again in a moment.'); return false; }
+    if (hosted && revision < 0) { notify('lifesolver is still connecting. Try again in a moment.'); return false; }
     if (sync.busy) { notify('A change is still saving. Try again in a moment.'); return false; }
     if (JSON.stringify(next) === JSON.stringify(state)) { notify(message); return true; }
     if (hosted || sync.code) {
