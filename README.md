@@ -1,6 +1,6 @@
 # Daymark
 
-Daymark organizes tasks and training. Calendar gives a read-only overview of the week or month. Select a date to open its Tasks checklist and check off scheduled runs when you finish them. All tasks shows every deadline and the selected week's training. Under Training, assign weekdays to workout days or run types, log workout sets, and view lifting progress. Saved changes support undo and redo.
+Daymark organizes tasks and training. Calendar gives a read-only overview of the week or month. Select a date to open its Tasks checklist and check off scheduled runs when you finish them. All tasks shows every deadline and the selected week's training. Under Training, assign weekdays to workout days or run types, log workout sets, and view lifting progress. Log workout opens today's scheduled session, and Finish workout saves your sets and marks the workout complete in Tasks. Saved changes support undo and redo.
 
 ## Run on your computer
 

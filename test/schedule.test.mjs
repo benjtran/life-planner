@@ -21,6 +21,14 @@ test('reusable workout days repeat on assigned weekdays from their start date', 
   assert.equal(Object.keys(state.days).length, 0, 'reading a recurring workout does not save an empty session');
 });
 
+test('an empty session saved before a workout was assigned still shows the scheduled exercises', () => {
+  const state = planner();
+  const date = '2026-11-23';
+  state.days[date] = {workoutPinned: true, workout: {title: '', exercises: []}};
+  assert.equal(workoutFor(state, date).title, 'Back Day');
+  assert.equal(workoutFor(state, date).exercises[0].name, 'Lat pulldown');
+});
+
 test('logging a dated session preserves its sets through edits to the recurring plan', () => {
   const state = planner();
   const session = pinWorkout(state, '2026-11-23');

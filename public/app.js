@@ -60,11 +60,12 @@
   let future = saved?.future || [];
   let section = 'calendar';
   let date = today;
+  let workoutDate = today;
   let view = 'month';
   let progressExercise = '';
   let taskFilter = 'all';
   let taskScope = 'day';
-  let trainingView = 'templates';
+  let trainingView = 'workout';
   let templateId = '';
   let runTypeId = '';
   let toastTimer;
@@ -101,7 +102,7 @@
     $('heading').innerHTML = section === 'training' ? '' : `<div class="page-heading"><h1>${sections[section]}</h1>${section === 'tasks' ? `<button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button>` : ''}</div>`;
     const weekStart = mondayOf(date);
     const allItems = section === 'tasks' && taskScope === 'all' ? [...state.tasks.map(manualTask), ...Array.from({length: 7}, (_, offset) => activitiesFor(state, addDays(weekStart, offset))).flat()] : [];
-    const ctx = {state, date, today, view, esc, pretty, addDays, taskTone, taskFilter, taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, progressExercise, workoutFor: value => workoutFor(state, value)};
+    const ctx = {state, date: section === 'training' ? workoutDate : date, today, view, esc, pretty, addDays, taskTone, taskFilter, taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, progressExercise, workoutFor: value => workoutFor(state, value)};
     $('view').innerHTML = window.DaymarkViews[section](ctx);
     const week = $('view').querySelector('.planner-schedule.is-week');
     if (week) {
@@ -245,7 +246,7 @@
     return dateKey(next);
   }
 
-  const workoutForms = () => [...$('view').querySelectorAll('[data-form="workout-title"], [data-form="save-set"], [data-form="save-cardio"]')];
+  const workoutForms = () => [...$('view').querySelectorAll('[data-form="save-set"], [data-form="save-cardio"]')];
   const formEdited = form => [...form.querySelectorAll('input')].some(input => input.value !== input.defaultValue || input.validity.badInput);
   const assignedWeekdays = data => [...new Set(data.getAll('weekday').map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6))];
 
@@ -254,10 +255,29 @@
     if (forms.some(form => !form.reportValidity())) return false;
     const inputs = forms.filter(formEdited).map(form => ({...form.dataset, values: Object.fromEntries([...new FormData(form)].map(([name, value]) => [name, value.trim()]))}));
     const next = copy(state);
-    const workout = inputs.length ? applyWorkoutInputs(next, date, inputs) : pinWorkout(next, date);
+    const workout = inputs.length ? applyWorkoutInputs(next, workoutDate, inputs) : pinWorkout(next, workoutDate);
     const before = preserveEntriesOnUndo && inputs.length ? copy(next) : state;
     update(workout, next);
     return useState(next, [...past, {state: before, message}], [], message);
+  }
+
+  function saveWorkoutProgress() {
+    if (!workoutForms().some(formEdited)) return notify('Workout progress is up to date.');
+    return changeWorkout('Workout progress saved.', () => {});
+  }
+
+  async function leaveWorkout(onSaved) {
+    if (workoutForms().some(formEdited) && !await saveWorkoutProgress()) return false;
+    onSaved();
+    return true;
+  }
+
+  function showWorkoutDate(nextDate) {
+    return leaveWorkout(() => {
+      workoutDate = nextDate;
+      render();
+      $('training-date')?.focus({preventScroll: true});
+    });
   }
 
   function createWorkoutForm() {
@@ -270,13 +290,28 @@
   document.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-action]');
     if (!button || button.disabled) return;
-    const {action, id: itemId, index, exercise} = button.dataset;
+    const {action, id: itemId, index} = button.dataset;
     const actionDate = validDate(button.dataset.date) ? button.dataset.date : date;
     switch (action) {
-      case 'navigate': return navigate(button.dataset.section);
+      case 'navigate': {
+        const target = button.dataset.section;
+        if (target === section) return;
+        return leaveWorkout(() => {
+          if (target === 'training' && trainingView === 'workout') workoutDate = today;
+          navigate(target);
+        });
+      }
       case 'new-task': return taskEditor();
-      case 'open-workout': date = actionDate; trainingView = 'workout'; return navigate('training');
-      case 'training-view': trainingView = button.dataset.view; return render();
+      case 'open-workout': workoutDate = actionDate; trainingView = 'workout'; return navigate('training');
+      case 'training-view': {
+        const target = button.dataset.view;
+        if (target === trainingView) return;
+        return leaveWorkout(() => {
+          trainingView = target;
+          if (target === 'workout') workoutDate = today;
+          render();
+        });
+      }
       case 'task-filter': taskFilter = button.dataset.filter; return render();
       case 'task-scope': taskScope = button.dataset.scope; return render();
       case 'task-prev': date = addDays(date, -1); return render();
@@ -315,15 +350,33 @@
         if (item) return change(item.done ? 'Marked as to do.' : 'Marked complete.', (next) => { next.plannedCompletions[itemId] = !item.done; });
         return;
       }
-      case 'add-set': return changeWorkout('Set added.', (workout) => workout.exercises.find(entry => entry.id === itemId)?.sets.push(blankSet()), true);
+      case 'workout-today': return showWorkoutDate(today);
+      case 'add-set': {
+        const nextSet = workoutFor(state, workoutDate).exercises.find(entry => entry.id === itemId)?.sets?.length || 0;
+        return Promise.resolve(changeWorkout('Set added.', (workout) => {
+          const entry = workout.exercises.find(exercise => exercise.id === itemId);
+          if (entry) (entry.sets ||= []).push(blankSet());
+        }, true)).then(saved => {
+          if (!saved) return;
+          workoutForms().find(form => form.dataset.id === itemId && Number(form.dataset.index) === nextSet)?.elements.namedItem('reps')?.focus();
+        });
+      }
       case 'delete-set': return changeWorkout('Set deleted.', (workout) => workout.exercises.find(entry => entry.id === itemId)?.sets.splice(Number(index), 1), true);
-      case 'delete-exercise': return changeWorkout('Exercise deleted.', (workout) => {
-        workout.exercises = workout.exercises.filter((item) => item.id !== itemId);
-      }, true);
-      case 'finish-workout': return Promise.resolve(changeWorkout('Workout saved.', (workout, next) => {
-        if (workout.title || workout.exercises.length) next.plannedCompletions[workoutItemId(date)] = true;
-      })).then(saved => { if (saved) createWorkoutForm(); });
-      case 'progress-exercise': progressExercise = exercise; trainingView = 'progress'; return navigate('training');
+      case 'save-workout-progress': return saveWorkoutProgress();
+      case 'finish-workout': {
+        const session = workoutDate;
+        return Promise.resolve(changeWorkout('Workout completed.', (_, next) => {
+          next.plannedCompletions[workoutItemId(session)] = true;
+        }, true)).then(saved => {
+          if (saved && workoutDate === session) $('view').querySelector('[data-action="view-workout-task"]')?.focus({preventScroll: true});
+        });
+      }
+      case 'view-workout-task': return leaveWorkout(() => {
+        date = workoutDate;
+        taskScope = 'day';
+        taskFilter = 'all';
+        navigate('tasks');
+      });
       case 'undo': return undo();
       case 'redo': return redo();
       case 'dismiss-toast': $('toast').hidden = true; return;
@@ -343,9 +396,11 @@
     }
   });
 
-  document.addEventListener('change', (event) => {
+  document.addEventListener('change', async (event) => {
     const field = event.target;
-    if (field.dataset.change === 'date' && validDate(field.value)) { date = field.value; render(); }
+    if (field.dataset.change === 'workout-date') {
+      if (!validDate(field.value) || !await showWorkoutDate(field.value)) field.value = workoutDate;
+    }
     if (field.dataset.change === 'progress-exercise') { progressExercise = field.value; render(); $('view').querySelector('[data-change="progress-exercise"]')?.focus(); }
   });
 
@@ -415,14 +470,8 @@
         if (committed) { runTypeId = ''; render(); }
         return;
       }
-      case 'workout-title': return changeWorkout('Workout details saved.', () => {});
-      case 'add-exercise': {
-        if (!get('name')) return;
-        const kind = get('kind') === 'cardio' ? 'cardio' : 'strength';
-        return changeWorkout('Exercise added.', (workout) => workout.exercises.push({id: id(), name: get('name'), kind, sets: kind === 'strength' ? [blankSet()] : [], minutes: null}), true);
-      }
-      case 'save-set': return changeWorkout('Sets saved.', () => {});
-      case 'save-cardio': return changeWorkout('Cardio saved.', () => {});
+      case 'save-set':
+      case 'save-cardio': return saveWorkoutProgress();
       case 'pair':
         try { await pair(get('code')); $('devices').close(); notify('Device connected.'); }
         catch { devices('Couldn’t connect. Check the code and try again.'); }

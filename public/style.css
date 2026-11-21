@@ -94,6 +94,5 @@ select { appearance: none; padding-right: 32px; background-image: url("data:imag
   .mobile-nav .nav-button { flex-direction: column; justify-content: center; align-items: center; gap: 4px; padding: 6px 1px; width: 100%; min-height: 49px; font-size: .75rem; }
   .mobile-nav .nav-button[aria-current="page"]::before { inset: 0 25% auto; width: auto; height: 2px; }
   .toast { bottom: calc(71px + env(safe-area-inset-bottom)); right: 12px; }
-  .main-inner .training-aside { grid-row: auto; }
   .main-inner .training-view input, .main-inner .training-view select { font-size: 1rem; }
 }

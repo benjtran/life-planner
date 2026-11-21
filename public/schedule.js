@@ -21,7 +21,7 @@
   function workoutFor(state, date) {
     const day = state.days[date];
     const saved = day?.workout;
-    if (day?.workoutPinned || saved?.exercises.some(isRecorded)) return saved;
+    if (saved && ((day.workoutPinned && (saved.title || saved.exercises.length)) || saved.exercises.some(isRecorded))) return saved;
 
     const scheduled = scheduledFor(state.templates || [], date);
     if (!scheduled.length) return saved || emptyWorkout();
@@ -91,14 +91,7 @@
 
   function applyWorkoutInputs(state, date, fields) {
     const workout = pinWorkout(state, date);
-    const day = state.days[date];
     for (const {form, id, index, values} of fields) {
-      if (form === 'workout-title') {
-        workout.title = values.title;
-        if (day.cardio !== values.cardio) day.cardioDone = false;
-        day.cardio = values.cardio;
-        continue;
-      }
       const exercise = workout.exercises.find(entry => entry.id === id);
       if (!exercise) continue;
       const numberOrBlank = value => value === '' ? null : Number(value);

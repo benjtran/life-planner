@@ -5,26 +5,49 @@
   const num = x => x == null || x === '' || !Number.isFinite(Number(x)) ? null : Number(x);
   const prettyNum = x => x == null ? '—' : String(x);
 
-  const workoutView = function (ctx) {
-    const {state, date, today, esc, pretty} = ctx;
-    const day = (state.days || {})[date] || {};
-    const workout = ctx.workoutFor(date) || {};
-    const exercises = Array.isArray(workout.exercises) ? workout.exercises : [];
-    const exerciseCard = (exercise, index) => {
-      const id = esc(value(exercise.id));
-      const name = esc(value(exercise.name) || 'Untitled exercise');
-      const cardio = exercise.kind === 'cardio';
-      const sets = Array.isArray(exercise.sets) ? exercise.sets : [];
-      return `<article class="training-exercise"><div class="exercise-heading"><div><span class="exercise-number">${String(index + 1).padStart(2, '0')}</span><span class="exercise-type">${cardio ? 'Cardio' : 'Strength'}${exercise.done ? ' · Completed' : ''}</span><h3>${name}</h3></div><button class="icon-action" type="button" data-action="delete-exercise" data-id="${id}" aria-label="Delete ${name}">×</button></div>
-        ${cardio ? `<form class="cardio-entry" data-form="save-cardio" data-id="${id}"><label>Duration <span class="unit">min</span><input type="number" min="0" step="any" name="minutes" value="${esc(value(exercise.minutes))}" placeholder="—"></label><button class="btn" type="submit">Save</button></form>` : `<div class="set-heading"><span>Set</span><span>Reps</span><span>Weight</span><span></span><span></span></div><div class="sets">${sets.map((set, i) => `<form class="set-row" data-form="save-set" data-id="${id}" data-index="${i}"><span class="set-index">${String(i + 1).padStart(2, '0')}</span><label><span class="sr-only">Set ${i + 1} reps</span><input type="number" min="0" step="any" name="reps" value="${esc(value(set.reps))}" placeholder="—"></label><label><span class="sr-only">Set ${i + 1} weight</span><input type="number" min="0" step="any" name="weight" value="${esc(value(set.weight))}" placeholder="—"></label><button class="save-set" type="submit">Save</button><button class="icon-action" type="button" data-action="delete-set" data-id="${id}" data-index="${i}" aria-label="Delete set ${i + 1}">×</button></form>`).join('')}</div><div class="exercise-footer"><button class="text-action" type="button" data-action="add-set" data-id="${id}">+ Add set</button><button class="text-action" type="button" data-action="progress-exercise" data-exercise="${name}">View progress ↗</button></div>`}
+  function workoutView(ctx) {
+    const {date, today, esc} = ctx;
+    const workout = ctx.workoutFor(date);
+    const {title, exercises} = workout;
+    const scheduled = Boolean(title || exercises.length);
+    const completed = Boolean(ctx.itemsFor(date).find(item => item.kind === 'workout')?.done);
+
+    function exerciseCard(exercise) {
+      const id = esc(exercise.id);
+      const name = esc(exercise.name || 'Untitled exercise');
+      const sets = exercise.sets || [];
+      return `<article class="training-exercise">
+        <h3>${name}</h3>
+        ${exercise.kind === 'cardio'
+          ? `<form class="cardio-entry" data-form="save-cardio" data-id="${id}"><label>Duration (min)<input type="number" inputmode="decimal" min="0" step="any" name="minutes" value="${esc(exercise.minutes)}"></label></form>`
+          : `${sets.length ? `<div class="set-heading" aria-hidden="true"><span>Set</span><span>Reps</span><span>Weight</span></div>` : ''}
+            <div class="sets">${sets.map((set, index) => `<form class="set-row" data-form="save-set" data-id="${id}" data-index="${index}">
+              <span class="set-index">${index + 1}</span>
+              <input type="number" inputmode="numeric" min="0" step="any" name="reps" aria-label="${name}, set ${index + 1} reps" value="${esc(set.reps)}">
+              <input type="number" inputmode="decimal" min="0" step="any" name="weight" aria-label="${name}, set ${index + 1} weight" value="${esc(set.weight)}">
+              <button class="icon-action" type="button" data-action="delete-set" data-id="${id}" data-index="${index}" aria-label="Remove ${name} set ${index + 1}">×</button>
+            </form>`).join('')}</div>
+            <button class="btn add-set" type="button" data-action="add-set" data-id="${id}" aria-label="Add set for ${name}">+ Add set</button>`}
       </article>`;
-    };
-    return `<div class="training-intro"><div class="training-date"><label for="training-date">Session date</label><input id="training-date" type="date" data-change="date" value="${esc(date)}" aria-label="Session date"><span>${esc(pretty(date))}${date === today ? ' · Today' : ''}</span></div></div>
-      <div class="training-layout"><div class="training-main"><div class="section-heading"><h2>Workout</h2><span class="exercise-count">${exercises.length} ${exercises.length === 1 ? 'EXERCISE' : 'EXERCISES'}</span></div>
-      <form class="panel workout-details" data-form="workout-title"><label>Workout name<input name="title" value="${esc(value(workout.title))}" placeholder="e.g. Upper body strength"></label><label>Other activity notes<input name="cardio" value="${esc(value(day.cardio))}" placeholder="e.g. Bike warm-up"></label><button class="btn" type="submit">Save details</button></form>
-      <div class="exercise-list">${exercises.length ? exercises.map(exerciseCard).join('') : '<div class="training-empty"><h3>No exercises yet</h3><p>Add an exercise to this workout.</p></div>'}</div><button class="btn primary finish-workout" type="button" data-action="finish-workout">Save workout</button></div>
-      <aside class="training-aside"><div class="panel add-exercise"><h2>Add an exercise</h2><form data-form="add-exercise"><label>Exercise name<input name="name" required placeholder="e.g. Goblet squat"></label><label>Type<select name="kind"><option value="strength">Strength</option><option value="cardio">Cardio</option></select></label><button class="btn primary" type="submit">+ Add exercise</button></form></div></aside></div>`;
-  };
+    }
+
+    return `<div class="workout-session">
+      <div class="session-heading">
+        <div><h2>${esc(title || (scheduled ? 'Workout' : 'No workout scheduled'))}</h2>${completed ? '<p class="session-status">✓ Completed</p>' : ''}</div>
+        <div class="session-date">
+          <label>Session date<input id="training-date" type="date" data-change="workout-date" value="${esc(date)}"></label>
+          ${date === today ? '' : '<button class="btn" type="button" data-action="workout-today">Today</button>'}
+        </div>
+      </div>
+      ${exercises.length ? `<div class="exercise-list">${exercises.map(exerciseCard).join('')}</div>` :
+        `<div class="training-empty session-empty">${scheduled ? '<p>No exercises scheduled for this workout.</p>' : ''}<button class="btn" type="button" data-action="training-view" data-view="templates">Go to Workout days</button></div>`}
+      ${scheduled ? `<div class="workout-actions">
+        ${exercises.length ? `<button class="btn" type="button" data-action="save-workout-progress">${completed ? 'Save changes' : 'Save progress'}</button>` : ''}
+        ${completed ? '<button class="btn primary" type="button" data-action="view-workout-task">View completed task</button>' :
+          '<button class="btn primary" type="button" data-action="finish-workout">Finish workout</button>'}
+      </div>` : ''}
+    </div>`;
+  }
 
   const templatesView = function (ctx) {
     const {state, esc} = ctx;
@@ -124,7 +147,7 @@
 
   views.training = function (ctx) {
     const active = ['templates', 'workout', 'running', 'progress'].includes(ctx.trainingView) ? ctx.trainingView : 'workout';
-    const labels = {templates: 'Workout days', workout: 'Log workout', running: 'Running', progress: 'Progress'};
+    const labels = {workout: 'Log workout', templates: 'Workout days', running: 'Running', progress: 'Progress'};
     return `<section class="training-view"><h1>Training</h1><nav class="training-tabs" aria-label="Training sections">${Object.entries(labels).map(([key, label]) => `<button type="button" data-action="training-view" data-view="${key}" aria-pressed="${active === key}">${label}</button>`).join('')}</nav>${active === 'templates' ? templatesView(ctx) : active === 'running' ? runningView(ctx) : active === 'progress' ? progressView(ctx) : workoutView(ctx)}</section>`;
   };
 })();
