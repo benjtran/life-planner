@@ -1,7 +1,7 @@
 .planner-calendar {
-  --exercise-bg: #e8f1fb;
-  --exercise-border: #c8daee;
-  --exercise-text: #25466c;
+  --exercise-bg: #263651;
+  --exercise-border: #50678e;
+  --exercise-text: #c1d7ff;
   min-width: 0;
   padding: clamp(14px, 2.1vw, 24px);
 }
@@ -17,18 +17,19 @@
 .calendar-controls .btn { min-width: 38px; }
 .calendar-controls .btn[aria-label] { font-size: 1.25rem; padding: 2px 9px; }
 .calendar-views { margin: 17px 0 12px; flex-wrap: wrap; }
-.segmented { display: flex; align-items: center; gap: 3px; background: var(--soft); border-radius: 10px; padding: 4px; }
+.segmented { display: flex; align-items: center; gap: 3px; background: var(--chrome); border: 1px solid var(--line); border-radius: var(--control-radius); padding: 3px; }
 .segmented button {
   min-height: 35px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: 5px;
   background: transparent;
   color: var(--muted);
   padding: 5px 10px;
   font-size: .875rem;
   font-weight: 650;
 }
-.segmented button[aria-pressed="true"] { background: var(--panel); border-color: var(--line); color: var(--ink); }
+.segmented button:not([aria-pressed="true"]):hover { background: var(--raised); color: var(--ink); }
+.segmented button[aria-pressed="true"] { background: var(--soft); border-color: var(--line); color: var(--accent); }
 .schedule-date h3 { font-size: 1.025rem; letter-spacing: -.015em; }
 .month-weekdays, .month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .month-weekdays span { font-size: .8125rem; color: var(--muted); font-weight: 650; text-align: center; padding: 8px 1px; }
@@ -47,26 +48,26 @@
   background: var(--panel);
   text-align: left;
 }
-.month-cell.is-outside { color: #66746a; background: #f5f7f2; }
-.month-cell:not(.is-selected):hover { background: #f1f5ef; }
+.month-cell.is-outside { color: var(--muted); background: var(--chrome); }
+.month-cell:not(.is-selected):hover { background: var(--raised); }
 .month-cell.is-selected { background: var(--soft); }
 .month-cell:focus-visible { outline-offset: -3px; }
-.month-number { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; font-size: .875rem; font-weight: 700; }
+.month-number { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 5px; font-size: .875rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .month-cell[aria-current="date"] .month-number { outline: 1px solid var(--accent); }
-.month-cell.is-selected .month-number { color: #fff; background: var(--accent); }
+.month-cell.is-selected .month-number { color: var(--accent-ink); background: var(--accent); }
 .month-kinds { display: none; }
 
 .planner-schedule { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .planner-schedule.is-week { position: relative; grid-template-columns: repeat(7, minmax(148px, 1fr)); overflow-x: auto; }
-.schedule-day { min-width: 0; padding: 10px; background: #f8faf6; }
-.schedule-day.is-selected { background: #edf4ed; }
+.schedule-day { min-width: 0; padding: 10px; background: var(--chrome); }
+.schedule-day.is-selected { background: var(--soft); }
 .schedule-date { min-height: 42px; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
 .schedule-date button[data-action="select-date"] { display: inline-flex; gap: 6px; align-items: center; border: 0; background: transparent; padding: 3px 0; font-weight: 700; }
 .schedule-date button[data-action="select-date"] span { padding: 2px 7px; border-radius: 6px; }
-.schedule-date button[aria-current="date"] span { background: var(--accent); color: white; }
+.schedule-date button[aria-current="date"] span { background: var(--accent); color: var(--accent-ink); }
 .schedule-entries { display: grid; align-content: start; gap: 8px; }
 .calendar-events { display: grid; align-content: start; gap: 6px; list-style: none; padding: 0; margin: 0; min-width: 0; }
-.calendar-event { min-width: 0; padding: 8px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--ink); font-size: .8125rem; line-height: 1.35; overflow-wrap: anywhere; }
+.calendar-event { min-width: 0; padding: 8px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--raised); color: var(--ink); font-size: .8125rem; line-height: 1.35; overflow-wrap: anywhere; }
 .calendar-event.is-exercise { border-color: var(--exercise-border); background: var(--exercise-bg); }
 .event-kind { display: block; margin-bottom: 3px; color: var(--muted); font-size: .75rem; font-weight: 700; }
 .event-kind.is-exercise { color: var(--exercise-text); }
