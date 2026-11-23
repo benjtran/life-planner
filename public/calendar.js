@@ -8,11 +8,19 @@
   const shortDate = date => format(date, {month: 'short', day: 'numeric'});
   const fullDate = date => format(date, {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'});
   const typeNames = {task: 'Task', workout: 'Lift', run: 'Run'};
+  const typeIcons = {
+    task: '<rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="m5 8 2 2 4-4"/>',
+    workout: '<path d="M1.5 7v2M4 4v8m8-8v8m2.5-5v2M4 8h8"/>',
+    run: '<path d="M2 13V6l4-1 2 3 4 1a2 2 0 0 1 2 2v2H2Zm0-2.5h12M7 7 5 8m4 0-1.5 1"/>',
+  };
   const typeOrder = new Map(Object.keys(typeNames).map((kind, index) => [kind, index]));
   const byType = (a, b) => (typeOrder.get(a.kind) ?? typeOrder.size) - (typeOrder.get(b.kind) ?? typeOrder.size);
   const typeName = kind => typeNames[kind] || 'Event';
-  const exerciseClass = kind => kind === 'task' ? '' : ' is-exercise';
-  const typeLabel = kind => `<span class="event-kind${exerciseClass(kind)}">${typeName(kind)}</span>`;
+  const typeClass = kind => typeOrder.has(kind) ? ` event-type-${kind}` : '';
+  function typeLabel(kind) {
+    const icon = typeIcons[kind];
+    return `<span class="event-kind${typeClass(kind)}">${icon ? `<svg class="event-kind-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icon}</svg>` : ''}<span>${typeName(kind)}</span></span>`;
+  }
   const weekdayOffset = date => (date.getDay() + 6) % 7;
 
   function monthPreviews(items) {
@@ -26,7 +34,7 @@
     const element = compact ? 'span' : 'li';
     const events = (compact ? monthPreviews(items) : items).map(item => {
       const status = [item.done && 'Done', item.detail].filter(Boolean).join(' · ');
-      return `<${element} class="calendar-event${exerciseClass(item.kind)}${item.done ? ' is-done' : ''}">
+      return `<${element} class="calendar-event${typeClass(item.kind)}${item.done ? ' is-done' : ''}">
         ${typeLabel(item.kind)}
         <span class="event-title">${ctx.esc(item.title)}</span>
         ${!compact && status ? `<span class="event-meta">${ctx.esc(status)}</span>` : ''}
@@ -62,7 +70,7 @@
   function schedule(ctx, dates) {
     return `<div class="planner-schedule is-week" role="region" aria-label="Weekly schedule" tabindex="0">${dates.map(date => `<article class="schedule-day${date === ctx.date ? ' is-selected' : ''}">
       <header class="schedule-date"><h3><button data-action="select-date" data-date="${date}" type="button" aria-label="${ctx.esc(fullDate(date))}" ${date === ctx.today ? 'aria-current="date"' : ''}>${ctx.esc(format(date, {weekday: 'short'}))} <span>${dateObj(date).getDate()}</span></button></h3></header>
-      <div class="schedule-entries">${eventList(ctx, ctx.itemsFor(date))}</div>
+      <div class="schedule-entries">${eventList(ctx, [...ctx.itemsFor(date)].sort(byType))}</div>
     </article>`).join('')}</div>`;
   }
 

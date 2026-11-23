@@ -24,8 +24,8 @@
     const date = task.due ? pretty(task.due) : 'No due date';
     const symbol = !task.done && symbols[tone];
     const label = task.done ? 'Completed' : labels[tone];
-    return `<li class="task-list-row${showDate ? ` task-date-${esc(tone)}${symbol ? ' has-deadline-status' : ''}` : ''}${task.done ? ' is-done' : ''}">
-      ${showDate ? `<div class="task-date"><span class="task-due-date">${esc(date)}</span>${statusLabel(label, symbol)}</div>` : ''}
+    return `<li class="task-list-row${task.done ? ' is-done' : ''}">
+      ${showDate ? `<div class="task-date${symbol ? ` deadline-${esc(tone)}` : ''}"><span class="task-due-date">${esc(date)}</span>${statusLabel(label, symbol)}</div>` : ''}
       <div class="task-content">
         <button class="task-check" type="button" data-action="toggle-task" data-id="${esc(task.id)}" aria-label="${task.done ? 'Restore' : 'Complete'} ${esc(task.title)}" aria-pressed="${task.done ? 'true' : 'false'}"><span aria-hidden="true">${task.done ? '✓' : ''}</span></button>
         <span class="task-title"><span class="task-name">${esc(task.title)}</span></span>
@@ -51,11 +51,11 @@
         return `<div class="task-day-kind">${showKind ? `<h3>${title}</h3>` : ''}<ul class="task-list" role="list">${matching.map(row).join('')}</ul></div>`;
       }).join('');
       return `<section class="task-day panel" aria-labelledby="task-day-${ctx.esc(due || 'undated')}">
-        <header class="task-day-header${status ? ` deadline-${ctx.esc(tone)}` : ''}">
+        <header class="task-date task-day-date${status ? ` deadline-${ctx.esc(tone)}` : ''}">
           <h2 id="task-day-${ctx.esc(due || 'undated')}">${due ? `<time datetime="${ctx.esc(due)}">${ctx.esc(ctx.pretty(due))}</time>` : 'No due date'}</h2>
           ${status ? statusLabel(labels[tone], status) : ''}
         </header>
-        ${groups}
+        <div class="task-day-items">${groups}</div>
       </section>`;
     }).join('');
   }
@@ -91,7 +91,7 @@
         ${scope === 'day' ? `<div class="tasks-day-nav"><button type="button" data-action="task-prev" aria-label="Previous day">‹</button><strong>${esc(pretty(ctx.date))}${ctx.date === ctx.today ? ' · Today' : ''}</strong><button type="button" data-action="task-next" aria-label="Next day">›</button><button type="button" data-action="task-today" class="tasks-today">Today</button></div>` : `<p class="tasks-range">Planned workouts and runs: ${esc(pretty(ctx.weekStart))} – ${esc(pretty(addDays(ctx.weekStart, 6)))}</p>`}
         <div class="task-filters" role="group" aria-label="Filter items">${filters.map(([value, label, count]) => `<button type="button" data-action="task-filter" data-filter="${value}" aria-pressed="${filter === value}">${label} <span>${count}</span></button>`).join('')}</div>
       </div>
-      ${groups ? `<div class="task-groups">${groups}</div>` : `<div class="panel tasks-empty"><strong>${filter === 'done' ? 'Nothing completed' : filter === 'all' ? 'Nothing scheduled' : 'Nothing to do'}</strong></div>`}
+      ${groups ? `<div class="${scope === 'all' ? 'task-days' : 'task-groups'}">${groups}</div>` : `<div class="panel tasks-empty"><strong>${filter === 'done' ? 'Nothing completed' : filter === 'all' ? 'Nothing scheduled' : 'Nothing to do'}</strong></div>`}
     </div>`;
   };
 })();
