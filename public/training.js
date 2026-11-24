@@ -8,10 +8,12 @@
     const {date, today, esc, pretty, state} = ctx;
     const {workoutForLogging, previousWorkoutSets} = window.DaymarkSchedule;
     const previous = previousWorkoutSets(state, date);
-    const workout = workoutForLogging(state, date, previous);
+    const workout = workoutForLogging(state, date, today, previous);
     const {title, exercises} = workout;
     const scheduled = Boolean(title || exercises.length);
     const completed = Boolean(ctx.itemsFor(date).find(item => item.kind === 'workout')?.done);
+    const current = exercises.filter(exercise => !exercise.removedFromPlan);
+    const removed = exercises.filter(exercise => exercise.removedFromPlan);
 
     function exerciseCard(exercise) {
       const id = esc(exercise.id);
@@ -46,8 +48,12 @@
           ${date === today ? '' : '<button class="btn" type="button" data-action="workout-today">Today</button>'}
         </div>
       </div>
-      ${exercises.length ? `<div class="exercise-list">${exercises.map(exerciseCard).join('')}</div>` :
+      ${current.length ? `<div class="exercise-list">${current.map(exerciseCard).join('')}</div>` :
         `<div class="training-empty session-empty">${scheduled ? '<p>No exercises scheduled for this workout.</p>' : ''}<button class="btn" type="button" data-action="training-view" data-view="templates">Go to Workout days</button></div>`}
+      ${removed.length ? `<details class="removed-exercises" data-date="${esc(date)}">
+        <summary>Removed exercises with logged sets</summary>
+        <div class="exercise-list">${removed.map(exerciseCard).join('')}</div>
+      </details>` : ''}
       ${scheduled ? `<div class="workout-actions">
         ${exercises.length ? `<button class="btn" type="button" data-action="save-workout-progress">${completed ? 'Save changes' : 'Save progress'}</button>` : ''}
         ${completed ? '<button class="btn primary" type="button" data-action="view-workout-task">View completed task</button>' :

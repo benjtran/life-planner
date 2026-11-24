@@ -49,9 +49,43 @@ test('logging a dated session preserves its sets through edits to the recurring 
   const session = pinWorkout(state, '2026-11-23');
   session.exercises[0].sets[0] = {reps: 8, weight: 70};
   state.templates[0].exercises = [{id: 'row', name: 'Barbell row'}];
-  assert.equal(workoutFor(state, '2026-11-23').exercises[0].sets[0].reps, 8);
-  assert.equal(workoutFor(state, '2026-11-23').exercises[0].sets[0].weight, 70);
+  assert.equal(workoutFor(state, '2026-11-23', '2026-11-24').exercises[0].sets[0].reps, 8);
+  assert.equal(workoutFor(state, '2026-11-23', '2026-11-24').exercises[0].sets[0].weight, 70);
   assert.equal(workoutFor(state, '2026-11-30').exercises[0].name, 'Barbell row');
+});
+
+test('an unfinished scheduled workout reflects plan edits and retains logged sets', () => {
+  const state = planner();
+  const date = '2026-11-23';
+  const template = state.templates[0];
+  template.exercises.push({id: 'row', name: 'Barbell row'}, {id: 'curl', name: 'Curl'});
+  const session = pinWorkout(state, date, date);
+  session.exercises[0].sets[0] = {reps: 8, weight: 70};
+  session.exercises[1].sets[0] = {reps: 10, weight: 55};
+  // Existing pinned sessions predate explicit template links.
+  delete session.templateIds;
+  template.exercises.splice(1, 2, {id: 'press', name: 'Press'});
+
+  const updated = workoutFor(state, date, date);
+  assert.deepEqual(Array.from(updated.exercises, entry => [entry.id, Boolean(entry.removedFromPlan)]), [
+    ['lat', false], ['press', false], ['row', true]
+  ]);
+  assert.equal(updated.exercises[0].sets[0].weight, 70);
+  assert.equal(updated.exercises[2].sets[0].weight, 55);
+  assert.equal(activitiesFor(state, date, date)[0].detail, '2 exercises');
+
+  applyWorkoutInputs(state, date, [{form: 'save-set', id: 'press', index: 0, values: {reps: '5', weight: '90'}}], date);
+  assert.equal(state.days[date].workout.exercises.find(entry => entry.id === 'row').sets[0].weight, 55);
+  template.exercises.push({id: 'row', name: 'Barbell row'});
+  const resumed = workoutFor(state, date, date).exercises.find(entry => entry.id === 'row');
+  assert.equal(resumed.removedFromPlan, undefined);
+  assert.equal(resumed.sets[0].weight, 55);
+
+  pinWorkout(state, date, date);
+  state.plannedCompletions[`workout:${date}`] = true;
+  template.exercises.push({id: 'crunch', name: 'Crunch machine'});
+  assert.equal(workoutFor(state, date, date).exercises.some(entry => entry.id === 'crunch'), false);
+  assert.equal(workoutFor(state, date, '2026-11-24').exercises.some(entry => entry.id === 'crunch'), false);
 });
 
 test('upgrading old planner data preserves tasks and completed dated workouts', () => {

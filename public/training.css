@@ -62,6 +62,9 @@
 .session-date .btn { min-height: 44px; }
 
 .exercise-list { display: grid; gap: 14px; }
+.removed-exercises { margin-top: 16px; }
+.removed-exercises summary { padding-block: 8px; color: var(--muted); font-size: .875rem; font-weight: 650; cursor: pointer; }
+.removed-exercises[open] .exercise-list { margin-top: 6px; }
 .training-exercise { padding: clamp(14px, 2.5vw, 22px); border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
 .training-exercise h3 { min-width: 0; margin: 0; font-size: 1.125rem; overflow-wrap: anywhere; }
 .set-heading, .set-row { display: grid; grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr) 40px; align-items: center; gap: 10px; }

@@ -4,6 +4,7 @@
   const defaultRunGoals = {high: 2, low: 4, highDistance: '10–15 km', lowDistance: '5 km'};
   const emptyWorkout = () => ({title: '', exercises: []});
   const blankSet = () => ({reps: null, weight: null});
+  const workoutItemId = date => `workout:${date}`;
   const exerciseNameKey = name => String(name ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
 
   function withDefaults(state) {
@@ -54,24 +55,52 @@
     return exercise.done || exercise.minutes != null || exercise.sets?.some(set => set.reps != null || set.weight != null);
   }
 
-  function workoutFor(state, date) {
+  function workoutCompleted(state, date, workout) {
+    const exercises = workout.exercises.filter(exercise => !exercise.removedFromPlan);
+    return state.plannedCompletions?.[workoutItemId(date)] ?? (exercises.length > 0 && exercises.every(exercise => exercise.done === true));
+  }
+
+  function workoutFor(state, date, today) {
     const day = state.days[date];
     const saved = day?.workout;
-    if (saved && ((day.workoutPinned && (saved.title || saved.exercises.length)) || saved.exercises.some(isRecorded))) return saved;
+    const pinned = saved && ((day.workoutPinned && (saved.title || saved.exercises.length)) || saved.exercises.some(isRecorded));
+    if (pinned && (!today || date < today || workoutCompleted(state, date, saved))) return saved;
 
     const scheduled = scheduledFor(state.templates || [], date);
     if (!scheduled.length) return saved || emptyWorkout();
 
     const existing = saved?.exercises || [];
-    const used = new Set(existing.map(exercise => exercise.exerciseId || exercise.id));
-    const recurring = [];
-    for (const exercise of scheduled.flatMap(template => template.exercises)) {
-      if (used.has(exercise.id)) continue;
-      used.add(exercise.id);
-      recurring.push({...exercise, exerciseId: exercise.id, kind: 'strength', sets: [blankSet()]});
+    const templateIds = scheduled.map(template => template.id);
+    const plannedTitle = [...new Set(scheduled.map(template => template.title).filter(Boolean))].join(' + ');
+    if (pinned) {
+      const followsPlan = saved.templateIds
+        ? saved.templateIds.some(id => templateIds.includes(id))
+        : day.workoutPinned && saved.title === plannedTitle;
+      if (!followsPlan) return saved;
     }
+
+    const planned = new Map();
+    for (const exercise of scheduled.flatMap(template => template.exercises)) {
+      if (!planned.has(exercise.id)) planned.set(exercise.id, exercise);
+    }
+    const fresh = exercise => ({...exercise, exerciseId: exercise.id, kind: 'strength', sets: [blankSet()]});
+    if (pinned) {
+      const exercises = [];
+      for (const exercise of planned.values()) {
+        const logged = existing.filter(entry => entry.kind !== 'cardio' && (entry.exerciseId || entry.id) === exercise.id);
+        exercises.push(...(logged.length ? logged.map(({removedFromPlan, ...entry}) => entry) : [fresh(exercise)]));
+      }
+      for (const entry of existing) {
+        if (entry.kind === 'cardio') exercises.push(entry);
+        else if (!planned.has(entry.exerciseId || entry.id) && isRecorded(entry)) exercises.push({...entry, removedFromPlan: true});
+      }
+      return {title: plannedTitle, templateIds, exercises};
+    }
+
+    const used = new Set(existing.map(exercise => exercise.exerciseId || exercise.id));
+    const recurring = [...planned.values()].filter(exercise => !used.has(exercise.id)).map(fresh);
     const titles = [...new Set([saved?.title, ...scheduled.map(template => template.title)].filter(Boolean))];
-    return {title: titles.join(' + '), exercises: [...existing, ...recurring]};
+    return {title: titles.join(' + '), templateIds, exercises: [...existing, ...recurring]};
   }
 
   function previousWorkoutSets(state, date) {
@@ -92,8 +121,8 @@
 
   const hasValue = value => value != null && value !== '' && Number.isFinite(Number(value));
 
-  function workoutForLogging(state, date, previous = previousWorkoutSets(state, date)) {
-    const workout = workoutFor(state, date);
+  function workoutForLogging(state, date, today, previous = previousWorkoutSets(state, date)) {
+    const workout = workoutFor(state, date, today);
     const saved = new Set((state.days[date]?.workout?.exercises || []).map(exercise => exercise.id));
     const exercises = workout.exercises.map(exercise => {
       const last = previous.get(exercise.exerciseId);
@@ -102,15 +131,14 @@
     return {...workout, exercises};
   }
 
-  function pinWorkout(state, date) {
-    const workout = workoutForLogging(state, date);
+  function pinWorkout(state, date, today) {
+    const workout = workoutForLogging(state, date, today);
     const day = state.days[date] ||= {cardio: ''};
     day.workout = workout;
     day.workoutPinned = true;
     return workout;
   }
 
-  const workoutItemId = date => `workout:${date}`;
   const runItemId = (date, typeId) => `run:${date}:${typeId}`;
 
   function formatRunPace(minutes, seconds) {
@@ -128,14 +156,14 @@
     return normalized ? normalized.split(':') : null;
   }
 
-  function activitiesFor(state, date) {
+  function activitiesFor(state, date, today) {
     const items = [];
-    const workout = workoutFor(state, date);
+    const workout = workoutFor(state, date, today);
     const completions = state.plannedCompletions || {};
     const id = workoutItemId(date);
     if (workout.title || workout.exercises.length) {
-      const exercises = workout.exercises.length;
-      items.push({id, due: date, kind: 'workout', title: workout.title || 'Workout', done: completions[id] ?? (exercises > 0 && workout.exercises.every(exercise => exercise.done === true)),
+      const exercises = workout.exercises.filter(exercise => !exercise.removedFromPlan).length;
+      items.push({id, due: date, kind: 'workout', title: workout.title || 'Workout', done: workoutCompleted(state, date, workout),
         detail: exercises ? `${exercises} ${exercises === 1 ? 'exercise' : 'exercises'}` : ''});
     }
 
@@ -156,8 +184,8 @@
     return items;
   }
 
-  function applyWorkoutInputs(state, date, fields) {
-    const workout = pinWorkout(state, date);
+  function applyWorkoutInputs(state, date, fields, today) {
+    const workout = pinWorkout(state, date, today);
     for (const {form, id, index, values} of fields) {
       const exercise = workout.exercises.find(entry => entry.id === id);
       if (!exercise) continue;

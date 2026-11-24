@@ -66,7 +66,7 @@
   const icon = (name) => `<svg class="icon" aria-hidden="true" viewBox="0 0 24 24">${icons[name]}</svg>`;
   const brand = (extra = '') => `<div class="brand ${extra}"><span class="brand-mark">${icon('mark')}</span>lifesolver</div>`;
   const manualTask = task => ({...task, kind: 'task'});
-  const itemsFor = (value) => [...state.tasks.filter(task => task.due === value).map(manualTask), ...activitiesFor(state, value)];
+  const itemsFor = (value) => [...state.tasks.filter(task => task.due === value).map(manualTask), ...activitiesFor(state, value, today)];
 
   function render() {
     const focused = document.activeElement;
@@ -76,6 +76,7 @@
     const previousWeekDate = previousWeek?.querySelector('.schedule-day.is-selected [data-action="select-date"]')?.dataset.date;
     const previousWeekScroll = previousWeek?.scrollLeft;
     const previousChart = $('view').querySelector('.chart-scroll');
+    const openRemovedExercises = $('view').querySelector('.removed-exercises[open]')?.dataset.date;
     const chartExercise = previousChart?.dataset.chartExercise;
     const chartScroll = previousChart?.scrollLeft;
     const chartAtEnd = previousChart && previousChart.scrollWidth - previousChart.clientWidth - chartScroll < 2;
@@ -88,9 +89,11 @@
     $('topbar').innerHTML = `${brand('top-brand')}<div class="top-actions"><button type="button" class="btn theme-toggle" data-action="toggle-theme" aria-label="Dark mode" title="Dark mode" aria-pressed="${dark}">${icon('moon')}<span class="tool-text">Dark mode</span></button><button type="button" class="btn mobile-devices" data-action="devices" aria-label="Connect devices">${icon('devices')}</button><button type="button" class="btn" data-action="undo" aria-label="Undo" title="Undo (Ctrl or Cmd + Z)" ${past.length && !sync.busy ? '' : 'disabled'}>${icon('undo')}<span class="tool-text">Undo</span></button><button type="button" class="btn icon-button" data-action="redo" aria-label="Redo" title="Redo (Ctrl or Cmd + Shift + Z)" ${future.length && !sync.busy ? '' : 'disabled'}>${icon('redo')}</button></div>`;
     $('heading').innerHTML = section === 'training' ? '' : `<div class="page-heading"><h1>${sections[section]}</h1>${section === 'tasks' ? `<button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button>` : ''}</div>`;
     const weekStart = mondayOf(date);
-    const allItems = section === 'tasks' && taskScope === 'all' ? [...state.tasks.map(manualTask), ...Array.from({length: 7}, (_, offset) => activitiesFor(state, addDays(weekStart, offset))).flat()] : [];
+    const allItems = section === 'tasks' && taskScope === 'all' ? [...state.tasks.map(manualTask), ...Array.from({length: 7}, (_, offset) => activitiesFor(state, addDays(weekStart, offset), today)).flat()] : [];
     const ctx = {state, date: section === 'training' ? workoutDate : date, today, view, esc, pretty, addDays, taskTone, taskFilter, taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, progressExercise, progressMetric};
     $('view').innerHTML = window.DaymarkViews[section](ctx);
+    const removedExercises = $('view').querySelector('.removed-exercises');
+    if (removedExercises && removedExercises.dataset.date === openRemovedExercises) removedExercises.open = true;
     const chart = $('view').querySelector('.chart-scroll');
     if (chart) chart.scrollLeft = chart.dataset.chartExercise === chartExercise && !chartAtEnd ? chartScroll : chart.scrollWidth;
     const week = $('view').querySelector('.planner-schedule.is-week');
@@ -311,7 +314,7 @@
     if (forms.some(form => !form.reportValidity())) return false;
     const inputs = forms.filter(formEdited).map(form => ({...form.dataset, values: Object.fromEntries([...new FormData(form)].map(([name, value]) => [name, value.trim()]))}));
     const next = copy(state);
-    const workout = inputs.length ? applyWorkoutInputs(next, workoutDate, inputs) : pinWorkout(next, workoutDate);
+    const workout = inputs.length ? applyWorkoutInputs(next, workoutDate, inputs, today) : pinWorkout(next, workoutDate, today);
     const before = preserveEntriesOnUndo && inputs.length ? copy(next) : state;
     update(workout, next);
     return useState(next, [...past, {state: before, message}], [], message);
@@ -479,8 +482,11 @@
       }
       case 'delete-task': return change('Task deleted.', (next) => { next.tasks = next.tasks.filter((item) => item.id !== itemId); }).then((saved) => { if (saved) $('task-editor').close(); });
       case 'toggle-planned': {
-        const item = activitiesFor(state, actionDate).find(entry => entry.id === itemId);
-        if (item) return change(item.done ? 'Marked as to do.' : 'Marked complete.', (next) => { next.plannedCompletions[itemId] = !item.done; });
+        const item = activitiesFor(state, actionDate, today).find(entry => entry.id === itemId);
+        if (item) return change(item.done ? 'Marked as to do.' : 'Marked complete.', (next) => {
+          if (item.kind === 'workout' && !item.done) pinWorkout(next, actionDate, today);
+          next.plannedCompletions[itemId] = !item.done;
+        });
         return;
       }
       case 'workout-today': return showWorkoutDate(today);
