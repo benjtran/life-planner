@@ -83,8 +83,17 @@ a { color: var(--accent); }
 .btn.primary:not(:disabled):hover { background: var(--accent-hover); }
 .btn.theme-toggle[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 .btn.theme-toggle[aria-pressed="true"]:hover { background: var(--accent-hover); }
-.theme-toggle[aria-pressed="true"] .theme-sun,
-.theme-toggle[aria-pressed="false"] .theme-moon { display: none; }
+.btn.theme-toggle .theme-icon { width: 20px; height: 20px; }
+.theme-icon :is(.theme-disc, .theme-cutout, .theme-rays) {
+  transition: transform 280ms cubic-bezier(.2, .75, .3, 1), opacity 180ms ease;
+}
+.theme-icon :is(.theme-disc, .theme-rays) { transform-origin: 50% 50%; }
+.theme-toggle[aria-pressed="true"] .theme-disc { transform: scale(1.6); }
+.theme-toggle[aria-pressed="true"] .theme-cutout { transform: translate(-8px, 8px); }
+.theme-toggle[aria-pressed="true"] .theme-rays { transform: rotate(28deg) scale(.5); opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .theme-icon :is(.theme-disc, .theme-cutout, .theme-rays) { transition: none; }
+}
 .btn .icon { width: 17px; height: 17px; }
 .icon-button { width: 40px; padding: 7px; }
 input, textarea, select { background: var(--chrome); color: var(--ink); border: 1px solid var(--control-border); border-radius: var(--control-radius); padding: 8px 10px; min-height: 42px; max-width: 100%; }

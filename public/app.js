@@ -60,11 +60,21 @@
     devices: '<rect x="3" y="4" width="14" height="11" rx="2"/><rect x="15" y="10" width="6" height="10" rx="1.5"/><path d="M7 19h4m-2-4v4"/>',
     undo: '<path d="M8 5 3 10l5 5m-5-5h11a5 5 0 0 1 0 10h-2"/>',
     redo: '<path d="m16 5 5 5-5 5m5-5H10a5 5 0 0 0 0 10h2"/>',
-    plus: '<path d="M12 5v14M5 12h14"/>',
-    moon: '<path d="M20.8 13.4A9 9 0 0 1 10.6 3.2a9 9 0 1 0 10.2 10.2Z"/>',
-    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19m0-14-1.4 1.4M6.4 17.6 5 19"/>'
+    plus: '<path d="M12 5v14M5 12h14"/>'
   };
-  const icon = (name, classes = 'icon') => `<svg class="${classes}" aria-hidden="true" viewBox="0 0 24 24">${icons[name]}</svg>`;
+  const icon = (name) => `<svg class="icon" aria-hidden="true" viewBox="0 0 24 24">${icons[name]}</svg>`;
+  const themeIcon = `<svg class="icon theme-icon" aria-hidden="true" viewBox="0 0 24 24">
+    <defs>
+      <mask id="theme-crescent" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+        <rect width="24" height="24" fill="white" stroke="none"/>
+        <circle class="theme-cutout" cx="24" cy="0" r="7.1" fill="black" stroke="none"/>
+      </mask>
+    </defs>
+    <g mask="url(#theme-crescent)">
+      <circle class="theme-disc" cx="12" cy="12" r="4.75" fill="currentColor" stroke="none"/>
+    </g>
+    <path class="theme-rays" d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19m0-14-1.4 1.4M6.4 17.6 5 19"/>
+  </svg>`;
   const brand = (extra = '') => `<div class="brand ${extra}"><span class="brand-mark">${icon('mark')}</span>lifesolver</div>`;
   const manualTask = task => ({...task, kind: 'task'});
   const itemsFor = (value) => [...state.tasks.filter(task => task.due === value).map(manualTask), ...activitiesFor(state, value, today)];
@@ -86,7 +96,7 @@
     $('sidebar').innerHTML = `${brand()}<nav aria-label="Main navigation">${nav}</nav>`;
     $('mobile-nav').innerHTML = nav;
     const dark = document.documentElement?.dataset.theme === 'dark';
-    const themeToggle = `<button type="button" class="btn icon-button theme-toggle" data-action="toggle-theme" aria-label="Dark theme" title="Switch theme" aria-pressed="${dark}">${icon('sun', 'icon theme-sun')}${icon('moon', 'icon theme-moon')}</button>`;
+    const themeToggle = `<button type="button" class="btn icon-button theme-toggle" data-action="toggle-theme" aria-label="Dark theme" title="Switch theme" aria-pressed="${dark}">${themeIcon}</button>`;
     $('topbar').innerHTML = `${brand('top-brand')}<div class="top-actions">${themeToggle}<button type="button" class="btn icon-button" data-action="devices" aria-label="Devices" title="Devices">${icon('devices')}</button><button type="button" class="btn" data-action="undo" aria-label="Undo" title="Undo (Ctrl or Cmd + Z)" ${past.length && !sync.busy ? '' : 'disabled'}>${icon('undo')}<span class="tool-text">Undo</span></button><button type="button" class="btn icon-button" data-action="redo" aria-label="Redo" title="Redo (Ctrl or Cmd + Shift + Z)" ${future.length && !sync.busy ? '' : 'disabled'}>${icon('redo')}</button></div>`;
     $('heading').innerHTML = section === 'training' ? '' : `<div class="page-heading"><h1>${sections[section]}</h1>${section === 'tasks' ? `<button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button>` : ''}</div>`;
     const weekStart = mondayOf(date);
