@@ -111,6 +111,20 @@ select { appearance: auto; }
 .device-body form { display: grid; gap: 10px; }
 .danger-text { color: var(--danger-ink); }
 
+.view-switcher { position: relative; display: inline-grid; grid-template-columns: auto auto; }
+.view-switcher > button { position: relative; z-index: 1; }
+.view-switcher-highlight {
+  position: absolute;
+  inset: 0;
+  grid-area: 1 / 1 / 2 / 2;
+  border: var(--switcher-border, 0);
+  border-radius: var(--switcher-radius, 7px);
+  background: var(--soft);
+  transform-origin: left center;
+  pointer-events: none;
+}
+.view-switcher > button[aria-pressed="true"] + .view-switcher-highlight { grid-column: 2 / 3; }
+
 @media (prefers-reduced-motion: no-preference) {
   :is(.btn, .nav-button, .segmented button, .training-tabs button):not(:disabled) {
     transition: transform 120ms ease-out;

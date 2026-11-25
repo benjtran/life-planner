@@ -54,9 +54,9 @@
   .task-title { font-size: .87rem; }
   .task-edit { flex-basis: 32px; width: 32px; }
 }
-.tasks-scope { display: inline-flex; gap: 4px; margin-bottom: 16px; padding: 4px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--chrome); }
+.tasks-scope { gap: 4px; margin-bottom: 16px; padding: 4px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--chrome); }
 .tasks-scope button { min-height: 34px; padding: 6px 15px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-weight: 650; }
-.tasks-scope button[aria-pressed="true"] { background: var(--soft); color: var(--accent); }
+.tasks-scope button[aria-pressed="true"] { color: var(--accent); }
 .tasks-day-nav { display: flex; align-items: center; gap: clamp(8px, 2vw, 12px); }
 .tasks-day-nav button { flex: none; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-size: 1.3rem; }
 .planned-detail { display: block; margin-top: 3px; color: var(--muted); font-size: .8rem; font-weight: 400; }

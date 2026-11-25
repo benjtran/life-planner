@@ -135,6 +135,21 @@
     }
   }
 
+  function renderViewSwitch(button) {
+    // Keep the highlight's current position if a second switch interrupts the first.
+    const motion = window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+    const start = motion ? button.closest('.view-switcher')?.querySelector('.view-switcher-highlight')?.getBoundingClientRect() : null;
+    render();
+    if (!start?.width) return;
+    const highlight = $('view').querySelector('.view-switcher-highlight');
+    const end = highlight?.getBoundingClientRect();
+    if (!end?.width) return;
+    highlight.animate?.([
+      {transform: `translateX(${start.left - end.left}px) scaleX(${start.width / end.width})`},
+      {transform: 'none'}
+    ], {duration: 190, easing: 'cubic-bezier(.2, .75, .3, 1)'});
+  }
+
   function persist() {
     return hosted || storageWrite(key, {state, revision, past: past.slice(-25), future: future.slice(-25)});
   }
@@ -479,7 +494,10 @@
         });
       }
       case 'task-filter': taskFilter = button.dataset.filter; return render();
-      case 'task-scope': taskScope = button.dataset.scope; return render();
+      case 'task-scope':
+        if (taskScope === button.dataset.scope) return;
+        taskScope = button.dataset.scope;
+        return renderViewSwitch(button);
       case 'task-prev': date = addDays(date, -1); return render();
       case 'task-next': date = addDays(date, 1); return render();
       case 'task-today': date = today; return render();
@@ -506,7 +524,10 @@
         taskScope = 'day';
         taskFilter = 'all';
         return navigate('tasks');
-      case 'calendar-view': view = button.dataset.view; return render();
+      case 'calendar-view':
+        if (view === button.dataset.view) return;
+        view = button.dataset.view;
+        return renderViewSwitch(button);
       case 'calendar-prev': date = stepDate(-1); return render();
       case 'calendar-next': date = stepDate(1); return render();
       case 'calendar-today': date = today; return render();

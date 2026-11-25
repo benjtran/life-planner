@@ -86,7 +86,11 @@
       </section>`;
     }).join('');
     return `<div class="tasks-view">
-      <div class="tasks-scope" role="group" aria-label="Task scope"><button type="button" data-action="task-scope" data-scope="day" aria-pressed="${scope === 'day'}">Day</button><button type="button" data-action="task-scope" data-scope="all" aria-pressed="${scope === 'all'}">All tasks</button></div>
+      <div class="tasks-scope view-switcher" role="group" aria-label="Task scope">
+        <button type="button" data-action="task-scope" data-scope="day" aria-pressed="${scope === 'day'}">Day</button>
+        <button type="button" data-action="task-scope" data-scope="all" aria-pressed="${scope === 'all'}">All tasks</button>
+        <span class="view-switcher-highlight" aria-hidden="true"></span>
+      </div>
       <div class="tasks-toolbar">
         ${scope === 'day' ? `<div class="tasks-day-nav"><button type="button" data-action="task-prev" aria-label="Previous day">‹</button><strong>${esc(pretty(ctx.date))}${ctx.date === ctx.today ? ' · Today' : ''}</strong><button type="button" data-action="task-next" aria-label="Next day">›</button><button type="button" data-action="task-today" class="tasks-today">Today</button></div>` : `<p class="tasks-range">Planned workouts and runs: ${esc(pretty(ctx.weekStart))} – ${esc(pretty(addDays(ctx.weekStart, 6)))}</p>`}
         <div class="task-filters" role="group" aria-label="Filter items">${filters.map(([value, label, count]) => `<button type="button" data-action="task-filter" data-filter="${value}" aria-pressed="${filter === value}">${label} <span>${count}</span></button>`).join('')}</div>

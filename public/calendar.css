@@ -32,7 +32,9 @@
 .calendar-controls .btn { min-width: 38px; }
 .calendar-controls .btn[aria-label] { font-size: 1.25rem; padding: 2px 9px; }
 .calendar-views { margin: 17px 0 12px; flex-wrap: wrap; }
-.segmented { display: flex; align-items: center; gap: 3px; background: var(--chrome); border: 1px solid var(--line); border-radius: var(--control-radius); padding: 3px; }
+.segmented { align-items: center; gap: 3px; background: var(--chrome); border: 1px solid var(--line); border-radius: var(--control-radius); padding: 3px; }
+.segmented:not(.view-switcher) { display: flex; }
+.segmented.view-switcher { --switcher-border: 1px solid var(--line); --switcher-radius: 5px; }
 .segmented button {
   min-height: 35px;
   border: 1px solid transparent;
@@ -44,7 +46,8 @@
   font-weight: 650;
 }
 .segmented button:not([aria-pressed="true"]):hover { background: var(--raised); color: var(--ink); }
-.segmented button[aria-pressed="true"] { background: var(--soft); border-color: var(--line); color: var(--accent); }
+.segmented button[aria-pressed="true"] { color: var(--accent); }
+.segmented:not(.view-switcher) button[aria-pressed="true"] { background: var(--soft); border-color: var(--line); }
 .schedule-date h3 { font-size: 1.025rem; letter-spacing: -.015em; }
 .month-weekdays, .month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .month-weekdays span { font-size: .8125rem; color: var(--muted); font-weight: 650; text-align: center; padding: 8px 1px; }

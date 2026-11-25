@@ -88,7 +88,10 @@
         <button type="button" class="btn" data-action="calendar-prev" aria-label="Previous ${view}">‹</button>
         <button type="button" class="btn" data-action="calendar-next" aria-label="Next ${view}">›</button>
       </div></div>
-      <div class="calendar-views"><div class="segmented" role="group" aria-label="Calendar view">${['week', 'month'].map(option => `<button type="button" data-action="calendar-view" data-view="${option}" aria-pressed="${view === option}">${option[0].toUpperCase() + option.slice(1)}</button>`).join('')}</div></div>
+      <div class="calendar-views"><div class="segmented view-switcher" role="group" aria-label="Calendar view">
+        ${['week', 'month'].map(option => `<button type="button" data-action="calendar-view" data-view="${option}" aria-pressed="${view === option}">${option[0].toUpperCase() + option.slice(1)}</button>`).join('')}
+        <span class="view-switcher-highlight" aria-hidden="true"></span>
+      </div></div>
       ${view === 'month' ? monthGrid(ctx) : schedule(ctx, dates)}
     </section>`;
   };
