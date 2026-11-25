@@ -17,7 +17,7 @@ From the hosted address in Safari, select **Share → Add to Home Screen** and t
 ### Local Wi-Fi preview
 
 1. Run `npm run start:lan` on your computer while both devices are on the same trusted Wi-Fi.
-2. Open the computer URL and select **Devices** to see the phone URL and pairing code.
+2. Open the computer URL and select the **Devices** icon in the top toolbar to see the phone URL and pairing code.
 3. Open the phone URL in Safari and enter the pairing code. Keep the computer awake and the launcher running while you use the planner.
 
 The planner saves to `.daymark-data/planner.json` on the computer. LAN mode uses local HTTP, so use it on a trusted private network. LAN mode shares one planner across paired browsers. For weight history, use a consistent unit for each exercise.
