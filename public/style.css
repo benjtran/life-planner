@@ -62,10 +62,10 @@ a { color: var(--accent); }
 .brand { display: flex; align-items: center; gap: 10px; padding: 0 10px; color: var(--ink); font-weight: 760; letter-spacing: -.055em; font-size: 1.45rem; }
 .brand-mark { display: grid; flex: 0 0 auto; place-items: center; width: 32px; height: 32px; border-radius: var(--control-radius); background: var(--accent); color: var(--accent-ink); }
 .brand-mark svg { width: 19px; height: 19px; }
-.sidebar nav { display: grid; gap: 5px; margin-top: 34px; }
+.sidebar nav { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; margin-top: 34px; }
 .nav-button { display: flex; align-items: center; width: 100%; gap: 11px; border: 1px solid transparent; background: transparent; border-radius: var(--control-radius); padding: 9px 12px; font-weight: 620; text-align: left; color: inherit; }
-.nav-button:hover { background: var(--raised); color: var(--ink); }
-.nav-button[aria-current="page"] { background: var(--soft); border-color: var(--line); color: var(--accent); }
+.nav-button:not([aria-current="page"]):hover { background: var(--raised); color: var(--ink); }
+.nav-button[aria-current="page"] { color: var(--accent); }
 .icon { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
 .workspace { margin-inline: calc(var(--sidebar-width) + var(--workspace-gutter)) var(--workspace-gutter); min-height: 100vh; outline: none; }
 .topbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 13px clamp(17px, 3vw, 44px); min-height: 66px; background: var(--chrome); border-bottom: 1px solid var(--line); }
@@ -111,19 +111,23 @@ select { appearance: auto; }
 .device-body form { display: grid; gap: 10px; }
 .danger-text { color: var(--danger-ink); }
 
-.view-switcher { position: relative; display: inline-grid; grid-template-columns: auto auto; }
-.view-switcher > button { position: relative; z-index: 1; }
+.view-switcher { position: relative; display: inline-grid; grid-template-columns: repeat(var(--switcher-options, 2), auto); }
+.section-switcher { --switcher-border: 1px solid var(--line); --switcher-radius: var(--control-radius); }
+:is(.view-switcher, .section-switcher) > button { position: relative; z-index: 1; }
+:is(.view-switcher, .section-switcher):has(> button:nth-child(2):is([aria-pressed="true"], [aria-current="page"])) { --active-option: 2; }
+:is(.view-switcher, .section-switcher):has(> button:nth-child(3):is([aria-pressed="true"], [aria-current="page"])) { --active-option: 3; }
 .view-switcher-highlight {
   position: absolute;
   inset: 0;
-  grid-area: 1 / 1 / 2 / 2;
+  grid-row: 1 / span 1;
+  grid-column: var(--active-option, 1) / span 1;
   border: var(--switcher-border, 0);
   border-radius: var(--switcher-radius, 7px);
   background: var(--soft);
-  transform-origin: left center;
+  transform-origin: left top;
   pointer-events: none;
 }
-.view-switcher > button[aria-pressed="true"] + .view-switcher-highlight { grid-column: 2 / 3; }
+.sidebar .view-switcher-highlight { grid-row: var(--active-option, 1) / span 1; grid-column: 1 / span 1; }
 
 @media (prefers-reduced-motion: no-preference) {
   :is(.btn, .nav-button, .segmented button, .training-tabs button):not(:disabled) {

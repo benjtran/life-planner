@@ -93,7 +93,10 @@
       </div>
       <div class="tasks-toolbar">
         ${scope === 'day' ? `<div class="tasks-day-nav"><button type="button" data-action="task-prev" aria-label="Previous day">‹</button><strong>${esc(pretty(ctx.date))}${ctx.date === ctx.today ? ' · Today' : ''}</strong><button type="button" data-action="task-next" aria-label="Next day">›</button><button type="button" data-action="task-today" class="tasks-today">Today</button></div>` : `<p class="tasks-range">Planned workouts and runs: ${esc(pretty(ctx.weekStart))} – ${esc(pretty(addDays(ctx.weekStart, 6)))}</p>`}
-        <div class="task-filters" role="group" aria-label="Filter items">${filters.map(([value, label, count]) => `<button type="button" data-action="task-filter" data-filter="${value}" aria-pressed="${filter === value}">${label} <span>${count}</span></button>`).join('')}</div>
+        <div class="task-filters view-switcher" role="group" aria-label="Filter items">
+          ${filters.map(([value, label, count]) => `<button type="button" data-action="task-filter" data-filter="${value}" aria-pressed="${filter === value}">${label} <span>${count}</span></button>`).join('')}
+          <span class="view-switcher-highlight" aria-hidden="true"></span>
+        </div>
       </div>
       ${groups ? `<div class="${scope === 'all' ? 'task-days' : 'task-groups'}">${groups}</div>` : `<div class="panel tasks-empty"><strong>${filter === 'done' ? 'Nothing completed' : filter === 'all' ? 'Nothing scheduled' : 'Nothing to do'}</strong></div>`}
     </div>`;

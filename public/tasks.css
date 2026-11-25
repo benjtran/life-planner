@@ -1,8 +1,8 @@
 .tasks-view { --date-column: 180px; max-width: 1200px; }
 .tasks-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; margin: 0 0 20px; }
-.task-filters { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--chrome); }
+.task-filters { --switcher-options: 3; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--chrome); }
 .task-filters button { min-height: 34px; padding: 6px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: .83rem; font-weight: 650; }
-.task-filters button[aria-pressed="true"] { background: var(--soft); color: var(--accent); }
+.task-filters button[aria-pressed="true"] { color: var(--accent); }
 .task-filters button span { margin-left: 3px; font-variant-numeric: tabular-nums; }
 .task-groups { display: grid; gap: 24px; }
 .task-group { min-width: 0; }

@@ -43,7 +43,7 @@
   let progressMetric = '';
   let chartPoint = null;
   let chartPointPinned = false;
-  let taskFilter = 'all';
+  const taskFilters = {day: 'all', all: 'open'};
   let taskScope = 'day';
   let trainingView = 'workout';
   let templateId = '';
@@ -90,8 +90,9 @@
     const chartScroll = previousChart?.scrollLeft;
     const chartAtEnd = previousChart && previousChart.scrollWidth - previousChart.clientWidth - chartScroll < 2;
     closeChartPoint();
-    const nav = Object.entries(sections).map(([name, label]) => `<button class="nav-button" type="button" data-action="navigate" data-section="${name}"${section === name ? ' aria-current="page"' : ''}>${icon(name)}<span>${label}</span></button>`).join('');
-    $('sidebar').innerHTML = `${brand()}<nav aria-label="Main navigation">${nav}</nav>`;
+    const nav = Object.entries(sections).map(([name, label]) => `<button class="nav-button" type="button" data-action="navigate" data-section="${name}"${section === name ? ' aria-current="page"' : ''}>${icon(name)}<span>${label}</span></button>`).join('') +
+      '<span class="view-switcher-highlight" aria-hidden="true"></span>';
+    $('sidebar').innerHTML = `${brand()}<nav class="section-switcher" aria-label="Main navigation">${nav}</nav>`;
     $('mobile-nav').innerHTML = nav;
     const dark = document.documentElement?.dataset.theme === 'dark';
     const themeToggle = `<button type="button" class="btn icon-button theme-toggle" data-action="toggle-theme" aria-label="Dark theme" title="Switch theme" aria-pressed="${dark}">${themeIcon}</button>`;
@@ -112,7 +113,7 @@
     }
     const weekStart = mondayOf(date);
     const allItems = section === 'tasks' && taskScope === 'all' ? [...state.tasks.map(manualTask), ...Array.from({length: 7}, (_, offset) => activitiesFor(state, addDays(weekStart, offset), today)).flat()] : [];
-    const ctx = {state, date: section === 'training' ? workoutDate : date, today, view, esc, pretty, addDays, taskTone, taskFilter, taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, progressExercise, progressMetric};
+    const ctx = {state, date: section === 'training' ? workoutDate : date, today, view, esc, pretty, addDays, taskTone, taskFilter: taskFilters[taskScope], taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, progressExercise, progressMetric};
     $('view').innerHTML = window.DaymarkViews[section](ctx);
     const calendar = $('view').querySelector('.planner-calendar');
     if (calendar && previousCalendarPeriod && calendar.dataset.period !== previousCalendarPeriod) {
@@ -135,17 +136,17 @@
     }
   }
 
-  function renderViewSwitch(button) {
+  function renderViewSwitch(selector, update = render) {
     // Keep the highlight's current position if a second switch interrupts the first.
     const motion = window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
-    const start = motion ? button.closest('.view-switcher')?.querySelector('.view-switcher-highlight')?.getBoundingClientRect() : null;
-    render();
+    const start = motion ? document.querySelector(selector)?.getBoundingClientRect() : null;
+    update();
     if (!start?.width) return;
-    const highlight = $('view').querySelector('.view-switcher-highlight');
+    const highlight = document.querySelector(selector);
     const end = highlight?.getBoundingClientRect();
     if (!end?.width) return;
     highlight.animate?.([
-      {transform: `translateX(${start.left - end.left}px) scaleX(${start.width / end.width})`},
+      {transform: `translate(${start.left - end.left}px, ${start.top - end.top}px) scale(${start.width / end.width}, ${start.height / end.height})`},
       {transform: 'none'}
     ], {duration: 190, easing: 'cubic-bezier(.2, .75, .3, 1)'});
   }
@@ -271,6 +272,7 @@
   function navigate(target) {
     if (!(target in sections)) return;
     const changed = target !== section;
+    if (changed && target === 'tasks' && taskScope === 'all') taskFilters.all = 'open';
     section = target;
     render();
     window.scrollTo(0, 0);
@@ -469,9 +471,10 @@
       case 'navigate': {
         const target = button.dataset.section;
         if (target === section) return;
+        const nav = button.closest('#mobile-nav') ? '#mobile-nav' : '#sidebar nav';
         return leaveWorkout(() => {
           if (target === 'training' && trainingView === 'workout') workoutDate = today;
-          navigate(target);
+          renderViewSwitch(`${nav} > .view-switcher-highlight`, () => navigate(target));
         });
       }
       case 'new-task': return taskEditor();
@@ -493,11 +496,15 @@
           render();
         });
       }
-      case 'task-filter': taskFilter = button.dataset.filter; return render();
+      case 'task-filter':
+        if (taskFilters[taskScope] === button.dataset.filter) return;
+        taskFilters[taskScope] = button.dataset.filter;
+        return renderViewSwitch('.task-filters > .view-switcher-highlight');
       case 'task-scope':
         if (taskScope === button.dataset.scope) return;
         taskScope = button.dataset.scope;
-        return renderViewSwitch(button);
+        if (taskScope === 'all') taskFilters.all = 'open';
+        return renderViewSwitch('.tasks-scope > .view-switcher-highlight');
       case 'task-prev': date = addDays(date, -1); return render();
       case 'task-next': date = addDays(date, 1); return render();
       case 'task-today': date = today; return render();
@@ -522,12 +529,12 @@
       case 'select-date':
         date = actionDate;
         taskScope = 'day';
-        taskFilter = 'all';
+        taskFilters.day = 'all';
         return navigate('tasks');
       case 'calendar-view':
         if (view === button.dataset.view) return;
         view = button.dataset.view;
-        return renderViewSwitch(button);
+        return renderViewSwitch('.calendar-views .view-switcher-highlight');
       case 'calendar-prev': date = stepDate(-1); return render();
       case 'calendar-next': date = stepDate(1); return render();
       case 'calendar-today': date = today; return render();
@@ -575,7 +582,7 @@
       case 'view-workout-task': return leaveWorkout(() => {
         date = workoutDate;
         taskScope = 'day';
-        taskFilter = 'all';
+        taskFilters.day = 'all';
         navigate('tasks');
       });
       case 'toggle-theme': return window.LifesolverAppearance.toggle();
@@ -625,8 +632,11 @@
         if (saved) {
           $('task-editor').close();
           if (taskScope === 'day' && due) date = due;
-          if (!due) taskScope = 'all';
-          if (section === 'tasks' && !itemId && taskFilter === 'done') taskFilter = 'open';
+          if (!due && taskScope === 'day') {
+            taskScope = 'all';
+            taskFilters.all = 'open';
+          }
+          if (section === 'tasks' && !itemId && taskFilters[taskScope] === 'done') taskFilters[taskScope] = 'open';
           render();
           $('heading').querySelector('[data-action="new-task"]')?.focus({preventScroll: true});
         }
