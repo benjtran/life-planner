@@ -108,10 +108,7 @@ select { appearance: auto; }
 .dialog-title { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
 .device-body { display: grid; gap: 12px; margin-top: 16px; }
 .device-body label { display: grid; gap: 4px; font-weight: 620; }
-.device-body code { padding: 4px 9px; border-radius: 6px; background: var(--soft); font-size: 1.1rem; font-weight: 700; letter-spacing: .07em; }
-.device-body a { overflow-wrap: anywhere; }
 .device-body .actions { display: flex; gap: 7px; flex-wrap: wrap; }
-.sync-label { font-size: .875rem; color: var(--muted); }
 .device-body form { display: grid; gap: 10px; }
 .danger-text { color: var(--danger-ink); }
 @media (max-width: 890px) {

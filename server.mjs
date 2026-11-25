@@ -99,4 +99,4 @@ async function handle(req, res) {
 }
 
 createServer(handle).listen(port, '127.0.0.1', () => console.log(`Computer: ${localUrl}`));
-if (lan) createServer(handle).listen(port, lanIp, () => console.log(`iPhone on this Wi-Fi: ${lanUrl}\nPairing code: use Devices on the computer.`));
+if (lan) createServer(handle).listen(port, lanIp, () => console.log(`iPhone on this Wi-Fi: ${lanUrl}\nPairing code: open ${localUrl}api/config on this computer.`));

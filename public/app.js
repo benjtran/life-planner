@@ -49,7 +49,7 @@
   let templateId = '';
   let runTypeId = '';
   let toastTimer;
-  let sync = {available: false, code: '', url: '', host: false, busy: false};
+  const sync = {code: '', host: false, busy: false};
   let revision = saved?.revision ?? -1;
   const sections = {calendar: 'Calendar', tasks: 'Tasks', training: 'Training'};
   const icons = {
@@ -57,7 +57,6 @@
     calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 10h18m-14 5h2m3 0h2m3 0h1"/>',
     tasks: '<path d="m3 7 2 2 3-4m-5 9 2 2 3-4m3-5h10m-10 7h10m-10 5h10"/>',
     training: '<path d="M3 10v4m3-7v10m12-10v10m3-7v4m-15-2h12"/>',
-    devices: '<rect x="3" y="4" width="14" height="11" rx="2"/><rect x="15" y="10" width="6" height="10" rx="1.5"/><path d="M7 19h4m-2-4v4"/>',
     undo: '<path d="M8 5 3 10l5 5m-5-5h11a5 5 0 0 1 0 10h-2"/>',
     redo: '<path d="m16 5 5 5-5 5m5-5H10a5 5 0 0 0 0 10h2"/>',
     plus: '<path d="M12 5v14M5 12h14"/>'
@@ -97,7 +96,7 @@
     $('mobile-nav').innerHTML = nav;
     const dark = document.documentElement?.dataset.theme === 'dark';
     const themeToggle = `<button type="button" class="btn icon-button theme-toggle" data-action="toggle-theme" aria-label="Dark theme" title="Switch theme" aria-pressed="${dark}">${themeIcon}</button>`;
-    $('topbar').innerHTML = `${brand('top-brand')}<div class="top-actions">${themeToggle}<button type="button" class="btn icon-button" data-action="devices" aria-label="Devices" title="Devices">${icon('devices')}</button><button type="button" class="btn" data-action="undo" aria-label="Undo" title="Undo (Ctrl or Cmd + Z)" ${past.length && !sync.busy ? '' : 'disabled'}>${icon('undo')}<span class="tool-text">Undo</span></button><button type="button" class="btn icon-button" data-action="redo" aria-label="Redo" title="Redo (Ctrl or Cmd + Shift + Z)" ${future.length && !sync.busy ? '' : 'disabled'}>${icon('redo')}</button></div>`;
+    $('topbar').innerHTML = `${brand('top-brand')}<div class="top-actions">${themeToggle}<button type="button" class="btn" data-action="undo" aria-label="Undo" title="Undo (Ctrl or Cmd + Z)" ${past.length && !sync.busy ? '' : 'disabled'}>${icon('undo')}<span class="tool-text">Undo</span></button><button type="button" class="btn icon-button" data-action="redo" aria-label="Redo" title="Redo (Ctrl or Cmd + Shift + Z)" ${future.length && !sync.busy ? '' : 'disabled'}>${icon('redo')}</button></div>`;
     $('heading').innerHTML = section === 'training' ? '' : `<div class="page-heading"><h1>${sections[section]}</h1>${section === 'tasks' ? `<button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button>` : ''}</div>`;
     const weekStart = mondayOf(date);
     const allItems = section === 'tasks' && taskScope === 'all' ? [...state.tasks.map(manualTask), ...Array.from({length: 7}, (_, offset) => activitiesFor(state, addDays(weekStart, offset), today)).flat()] : [];
@@ -206,11 +205,13 @@
     render();
   }
 
-  function devices(message = '') {
+  function showPairingDialog(message = '') {
     const dialog = $('devices');
-    const hostDetails = sync.url ? `<p>On your iPhone, open Safari and visit <a href="${esc(sync.url)}">${esc(sync.url)}</a> on the same Wi‑Fi.</p><p>Pairing code <code>${esc(sync.code)}</code></p><p class="sync-label">Use a trusted network and keep this computer and the launcher running.</p>` : `<p>Run the launcher with <code>--lan</code> to connect your iPhone over the same Wi‑Fi.</p>`;
-    const hostedDetails = '<p>On iPhone, open this address in Safari. In the Share menu, choose Add to Home Screen and turn on Open as Web App.</p><p>Sign in to your account on each device you use.</p><div class="actions"><a class="btn" href="/signout-with-chatgpt?return_to=%2F" target="_top">Sign out on this device</a></div>';
-    dialog.innerHTML = `<div class="dialog-title"><h2 id="device-title">Your devices</h2><button class="btn icon-button" type="button" data-action="close-devices" aria-label="Close devices">×</button></div><div class="device-body">${hosted ? hostedDetails : sync.host ? hostDetails : sync.code ? '<p>This device is paired. Changes save to your computer.</p>' : sync.available ? '<p>Enter the pairing code shown under Devices on your computer.</p><form data-form="pair"><label>Pairing code<input name="code" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" minlength="6" maxlength="6" required></label><button class="btn primary" type="submit">Connect</button></form>' : '<p>The planner saves to this browser. Open it through the launcher to use it across devices.</p>'}${message ? `<p role="alert">${esc(message)}</p>` : ''}<div class="actions"><button type="button" class="btn" data-action="start-empty">Clear planner</button></div></div>`;
+    dialog.innerHTML = `<div class="dialog-title"><h2 id="device-title">Connect to your computer</h2><button class="btn icon-button" type="button" data-action="close-devices" aria-label="Close pairing dialog">×</button></div>
+      <div class="device-body"><p>Enter the code from the pairing address printed by the launcher.</p>
+        <form data-form="pair"><label>Pairing code<input name="code" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" minlength="6" maxlength="6" required></label><button class="btn primary" type="submit">Connect</button></form>
+        ${message ? `<p role="alert">${esc(message)}</p>` : ''}<div class="actions"><button type="button" class="btn" data-action="start-empty">Clear planner</button></div>
+      </div>`;
     if (!dialog.open) dialog.showModal();
   }
 
@@ -535,7 +536,6 @@
       case 'undo': return undo();
       case 'redo': return redo();
       case 'dismiss-toast': $('toast').hidden = true; return;
-      case 'devices': return devices();
       case 'close-devices': return $('devices').close();
       case 'start-empty':
         if (!window.confirm('Clear all workouts, runs, and tasks? You can undo this.')) return;
@@ -654,7 +654,7 @@
       case 'save-cardio': return saveWorkoutProgress();
       case 'pair':
         try { await pair(get('code')); $('devices').close(); notify('Device connected.'); }
-        catch { devices('Couldn’t connect. Check the code and try again.'); }
+        catch { showPairingDialog('Couldn’t connect. Check the code and try again.'); }
     }
   });
 
@@ -680,11 +680,11 @@
       const response = await fetch('api/config', {cache: 'no-store'});
       if (!response.ok) return;
       const config = await response.json();
-      sync = {...sync, available: true, host: config.host, url: config.url};
+      sync.host = config.host;
       const previousCode = config.code || sessionStorage.getItem('daymark-code');
       if (previousCode) {
-        try { await pair(previousCode); } catch { if (!sync.host) devices('Enter the computer’s current pairing code.'); }
-      } else if (!sync.host) devices();
+        try { await pair(previousCode); } catch { if (!sync.host) showPairingDialog('Enter the computer’s current pairing code.'); }
+      } else if (!sync.host) showPairingDialog();
     } catch { /* The standalone browser version works without the launcher. */ }
     render();
   }
