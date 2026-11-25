@@ -28,6 +28,12 @@
     <header class="topbar" id="topbar"></header>
     <div class="main-inner">
       <div id="heading"></div>
+      <nav id="training-tabs" class="training-tabs" aria-label="Training sections" hidden>
+        <button type="button" data-action="training-view" data-view="workout" aria-pressed="true">Log workout</button>
+        <button type="button" data-action="training-view" data-view="templates" aria-pressed="false">Workout days</button>
+        <button type="button" data-action="training-view" data-view="running" aria-pressed="false">Running</button>
+        <button type="button" data-action="training-view" data-view="progress" aria-pressed="false">Progress</button>
+      </nav>
       <div id="view"></div>
     </div>
   </main>

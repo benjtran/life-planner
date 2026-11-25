@@ -95,7 +95,20 @@
     const dark = document.documentElement?.dataset.theme === 'dark';
     const themeToggle = `<button type="button" class="btn icon-button theme-toggle" data-action="toggle-theme" aria-label="Dark theme" title="Switch theme" aria-pressed="${dark}">${themeIcon}</button>`;
     $('topbar').innerHTML = `${brand('top-brand')}${themeToggle}`;
-    $('heading').innerHTML = section === 'training' ? '' : `<div class="page-heading"><h1>${sections[section]}</h1>${section === 'tasks' ? `<button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button>` : ''}</div>`;
+    $('heading').innerHTML = `<div class="page-heading"><h1>${sections[section]}</h1>${section === 'tasks' ? `<button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button>` : ''}</div>`;
+    const trainingTabs = $('training-tabs');
+    let activeTrainingTab;
+    trainingTabs.hidden = section !== 'training';
+    if (!trainingTabs.hidden) {
+      Array.from(trainingTabs.querySelectorAll('button')).forEach((tab, index) => {
+        const selected = tab.dataset.view === trainingView;
+        tab.setAttribute('aria-pressed', String(selected));
+        if (selected) {
+          activeTrainingTab = tab;
+          trainingTabs.style.setProperty('--active-tab', index);
+        }
+      });
+    }
     const weekStart = mondayOf(date);
     const allItems = section === 'tasks' && taskScope === 'all' ? [...state.tasks.map(manualTask), ...Array.from({length: 7}, (_, offset) => activitiesFor(state, addDays(weekStart, offset), today)).flat()] : [];
     const ctx = {state, date: section === 'training' ? workoutDate : date, today, view, esc, pretty, addDays, taskTone, taskFilter, taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, progressExercise, progressMetric};
@@ -112,7 +125,7 @@
     }
     if (focusRegion && focusData) {
       const replacement = Array.from(focusRegion.querySelectorAll('button[data-action]')).find(button => !button.disabled && button.getClientRects().length && focusData.every(([key, value]) => button.dataset[key] === value));
-      const fallback = focusRegion === $('view') && focusRegion.querySelector('[data-action="calendar-view"][aria-pressed="true"], [data-action="task-filter"][aria-pressed="true"], [data-action="training-view"][aria-pressed="true"]');
+      const fallback = focusRegion === $('view') && (activeTrainingTab || focusRegion.querySelector('[data-action="calendar-view"][aria-pressed="true"], [data-action="task-filter"][aria-pressed="true"]'));
       (replacement || fallback)?.focus?.({preventScroll: true});
     }
   }

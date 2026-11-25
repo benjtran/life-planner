@@ -72,7 +72,7 @@ a { color: var(--accent); }
 .top-brand, .mobile-nav { display: none; }
 .main-inner { padding: 28px clamp(17px, 3vw, 44px) 40px; margin: 0 auto; }
 .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 22px; }
-.page-heading h1, .main-inner .training-view > h1 { font: 740 clamp(2rem, 3.8vw, 3rem)/1.08 var(--font); letter-spacing: -.055em; }
+.page-heading h1 { align-self: flex-start; font: 740 clamp(2rem, 3.8vw, 3rem)/1.08 var(--font); letter-spacing: -.055em; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
 .muted { color: var(--muted); }
 .empty { color: var(--muted); padding: 1rem; border-radius: 12px; background: var(--canvas); }
