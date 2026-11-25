@@ -61,9 +61,10 @@
     undo: '<path d="M8 5 3 10l5 5m-5-5h11a5 5 0 0 1 0 10h-2"/>',
     redo: '<path d="m16 5 5 5-5 5m5-5H10a5 5 0 0 0 0 10h2"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
-    moon: '<path d="M20.8 13.4A9 9 0 0 1 10.6 3.2a9 9 0 1 0 10.2 10.2Z"/>'
+    moon: '<path d="M20.8 13.4A9 9 0 0 1 10.6 3.2a9 9 0 1 0 10.2 10.2Z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19m0-14-1.4 1.4M6.4 17.6 5 19"/>'
   };
-  const icon = (name) => `<svg class="icon" aria-hidden="true" viewBox="0 0 24 24">${icons[name]}</svg>`;
+  const icon = (name, classes = 'icon') => `<svg class="${classes}" aria-hidden="true" viewBox="0 0 24 24">${icons[name]}</svg>`;
   const brand = (extra = '') => `<div class="brand ${extra}"><span class="brand-mark">${icon('mark')}</span>lifesolver</div>`;
   const manualTask = task => ({...task, kind: 'task'});
   const itemsFor = (value) => [...state.tasks.filter(task => task.due === value).map(manualTask), ...activitiesFor(state, value, today)];
@@ -86,7 +87,8 @@
     $('sidebar').innerHTML = `${brand()}<nav aria-label="Main navigation">${nav}</nav><div class="sidebar-bottom"><button class="nav-button" type="button" data-action="devices">${icon('devices')} Devices</button><small>${storageLabel}</small></div>`;
     $('mobile-nav').innerHTML = nav;
     const dark = document.documentElement?.dataset.theme === 'dark';
-    $('topbar').innerHTML = `${brand('top-brand')}<div class="top-actions"><button type="button" class="btn theme-toggle" data-action="toggle-theme" aria-label="Dark mode" title="Dark mode" aria-pressed="${dark}">${icon('moon')}<span class="tool-text">Dark mode</span></button><button type="button" class="btn mobile-devices" data-action="devices" aria-label="Connect devices">${icon('devices')}</button><button type="button" class="btn" data-action="undo" aria-label="Undo" title="Undo (Ctrl or Cmd + Z)" ${past.length && !sync.busy ? '' : 'disabled'}>${icon('undo')}<span class="tool-text">Undo</span></button><button type="button" class="btn icon-button" data-action="redo" aria-label="Redo" title="Redo (Ctrl or Cmd + Shift + Z)" ${future.length && !sync.busy ? '' : 'disabled'}>${icon('redo')}</button></div>`;
+    const themeToggle = `<button type="button" class="btn icon-button theme-toggle" data-action="toggle-theme" aria-label="Dark theme" title="Switch theme" aria-pressed="${dark}">${icon('sun', 'icon theme-sun')}${icon('moon', 'icon theme-moon')}</button>`;
+    $('topbar').innerHTML = `${brand('top-brand')}<div class="top-actions">${themeToggle}<button type="button" class="btn mobile-devices" data-action="devices" aria-label="Connect devices">${icon('devices')}</button><button type="button" class="btn" data-action="undo" aria-label="Undo" title="Undo (Ctrl or Cmd + Z)" ${past.length && !sync.busy ? '' : 'disabled'}>${icon('undo')}<span class="tool-text">Undo</span></button><button type="button" class="btn icon-button" data-action="redo" aria-label="Redo" title="Redo (Ctrl or Cmd + Shift + Z)" ${future.length && !sync.busy ? '' : 'disabled'}>${icon('redo')}</button></div>`;
     $('heading').innerHTML = section === 'training' ? '' : `<div class="page-heading"><h1>${sections[section]}</h1>${section === 'tasks' ? `<button type="button" class="btn primary" data-action="new-task">${icon('plus')} Add task</button>` : ''}</div>`;
     const weekStart = mondayOf(date);
     const allItems = section === 'tasks' && taskScope === 'all' ? [...state.tasks.map(manualTask), ...Array.from({length: 7}, (_, offset) => activitiesFor(state, addDays(weekStart, offset), today)).flat()] : [];

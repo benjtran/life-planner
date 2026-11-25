@@ -85,6 +85,8 @@ a { color: var(--accent); }
 .btn.primary:not(:disabled):hover { background: var(--accent-hover); }
 .btn.theme-toggle[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 .btn.theme-toggle[aria-pressed="true"]:hover { background: var(--accent-hover); }
+.theme-toggle[aria-pressed="true"] .theme-sun,
+.theme-toggle[aria-pressed="false"] .theme-moon { display: none; }
 .btn .icon { width: 17px; height: 17px; }
 .icon-button { width: 40px; padding: 7px; }
 input, textarea, select { background: var(--chrome); color: var(--ink); border: 1px solid var(--control-border); border-radius: var(--control-radius); padding: 8px 10px; min-height: 42px; max-width: 100%; }
