@@ -81,7 +81,8 @@
     const weekStart = addDays(date, -weekdayOffset(dateObj(date)));
     const dates = Array.from({length: 7}, (_, i) => addDays(weekStart, i));
     const title = view === 'month' ? format(date, {month: 'long', year: 'numeric'}) : `${shortDate(weekStart)} – ${shortDate(dates[6])}`;
-    return `<section class="panel planner-calendar">
+    const period = view === 'month' ? date.slice(0, 7) : weekStart;
+    return `<section class="panel planner-calendar" data-period="${esc(period)}">
       <div class="calendar-toolbar"><h2>${esc(title)}</h2><div class="calendar-controls" aria-label="Change dates">
         <button type="button" class="btn" data-action="calendar-today">Today</button>
         <button type="button" class="btn" data-action="calendar-prev" aria-label="Previous ${view}">‹</button>

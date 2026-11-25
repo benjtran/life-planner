@@ -93,6 +93,15 @@
 .calendar-events.is-compact { width: 100%; gap: 3px; }
 .is-compact .calendar-event { padding: 4px 5px; font-size: .75rem; }
 .is-compact .event-kind { margin-bottom: 1px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .period-changed :is(.planner-month, .planner-schedule) { animation: calendar-fade-in 150ms ease-out; }
+}
+@keyframes calendar-fade-in {
+  from { opacity: .72; }
+  to { opacity: 1; }
+}
+
 @media (max-width: 660px) {
   .calendar-views { margin: 12px 0 8px; }
   .month-cell { min-height: 52px; padding: 3px; }

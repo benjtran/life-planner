@@ -31,6 +31,14 @@
 .task-check { display: grid; place-items: center; flex: 0 0 26px; width: 26px; height: 26px; padding: 0; border: 1.5px solid var(--control-border); border-radius: 6px; background: var(--chrome); color: var(--accent-ink); font-size: .9rem; line-height: 1; }
 .task-check:hover { border-color: var(--accent); }
 .is-done .task-check { border-color: var(--accent); background: var(--accent); }
+@media (prefers-reduced-motion: no-preference) {
+  .task-check.just-completed > span { animation: checkmark-pop 180ms ease-out; }
+}
+@keyframes checkmark-pop {
+  0% { opacity: .3; transform: scale(.65); }
+  60% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
 .task-title { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: .95rem; font-weight: 600; }
 .is-done .task-name { color: var(--muted); text-decoration: line-through; }
 .task-edit { flex: 0 0 36px; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 1.3rem; line-height: 1; }

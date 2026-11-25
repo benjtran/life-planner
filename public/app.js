@@ -80,6 +80,7 @@
     const focused = document.activeElement;
     const focusRegion = focused?.closest('#sidebar, #mobile-nav, #topbar, #heading, #view');
     const focusData = focused?.matches('button[data-action]') ? Object.entries(focused.dataset) : null;
+    const previousCalendarPeriod = $('view').querySelector('.planner-calendar')?.dataset.period;
     const previousWeek = $('view').querySelector('.planner-schedule.is-week');
     const previousWeekDate = previousWeek?.querySelector('.schedule-day.is-selected [data-action="select-date"]')?.dataset.date;
     const previousWeekScroll = previousWeek?.scrollLeft;
@@ -113,6 +114,10 @@
     const allItems = section === 'tasks' && taskScope === 'all' ? [...state.tasks.map(manualTask), ...Array.from({length: 7}, (_, offset) => activitiesFor(state, addDays(weekStart, offset), today)).flat()] : [];
     const ctx = {state, date: section === 'training' ? workoutDate : date, today, view, esc, pretty, addDays, taskTone, taskFilter, taskScope, itemsFor, allItems, weekStart, trainingView, templateId, runTypeId, progressExercise, progressMetric};
     $('view').innerHTML = window.DaymarkViews[section](ctx);
+    const calendar = $('view').querySelector('.planner-calendar');
+    if (calendar && previousCalendarPeriod && calendar.dataset.period !== previousCalendarPeriod) {
+      calendar.classList.add('period-changed');
+    }
     const removedExercises = $('view').querySelector('.removed-exercises');
     if (removedExercises && removedExercises.dataset.date === openRemovedExercises) removedExercises.open = true;
     const chart = $('view').querySelector('.chart-scroll');
@@ -177,6 +182,15 @@
     const next = copy(state);
     apply(next);
     return useState(next, [...past, {state, message}], [], message);
+  }
+
+  async function changeCompletion(item, message, apply) {
+    const saved = await change(message, apply);
+    if (saved && !item.done) {
+      const button = Array.from($('view').querySelectorAll('.task-check[aria-pressed="true"]')).find(entry => entry.dataset.id === item.id);
+      button?.classList.add('just-completed');
+    }
+    return saved;
   }
 
   function undo() {
@@ -500,13 +514,13 @@
       case 'close-task-editor': return $('task-editor').close();
       case 'toggle-task': {
         const task = state.tasks.find((item) => item.id === itemId);
-        if (task) return change(task.done ? 'Task restored.' : 'Task completed.', (next) => { next.tasks.find((item) => item.id === itemId).done = !task.done; });
+        if (task) return changeCompletion(task, task.done ? 'Task restored.' : 'Task completed.', (next) => { next.tasks.find((item) => item.id === itemId).done = !task.done; });
         return;
       }
       case 'delete-task': return change('Task deleted.', (next) => { next.tasks = next.tasks.filter((item) => item.id !== itemId); }).then((saved) => { if (saved) $('task-editor').close(); });
       case 'toggle-planned': {
         const item = activitiesFor(state, actionDate, today).find(entry => entry.id === itemId);
-        if (item) return change(item.done ? 'Marked as to do.' : 'Marked complete.', (next) => {
+        if (item) return changeCompletion(item, item.done ? 'Marked as to do.' : 'Marked complete.', (next) => {
           if (item.kind === 'workout' && !item.done) pinWorkout(next, actionDate, today);
           next.plannedCompletions[itemId] = !item.done;
         });
